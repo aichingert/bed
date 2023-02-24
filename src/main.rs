@@ -1,22 +1,15 @@
 // Tomb - file compressing
 // (c) aichingert
 
-use std::fs;
-
-fn encode(args: &Vec<String>) -> Result<(), ()> {
-    let filename = fs::canonicalize(&args[0]).expect(&format!("File: {} not found!", &args[0]));
-
-
-    Ok(())
-}
-
-fn decode(args: &Vec<String>) -> Result<(), ()> {
-
-    Ok(())
-}
+use tomb::{encode,decode};
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
+
+    if args.len() <= 1 {
+        println!("Not enough parameter [expected: file/folder name]");
+        std::process::exit(1);
+    }
 
     match args[1].as_str() {
         "encode" => {
@@ -25,7 +18,10 @@ fn main() {
         "decode" => {
             let res = decode(&args);
         },
-        _ => panic!("Invalid option {:?}", args[1]),
+        _ => {
+            println!("Invalid option {:?}", args[1]);
+            std::process::exit(1);
+        }
     };
 
     println!("{:?}", args);
