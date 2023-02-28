@@ -21,6 +21,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    pub fn get_tokens_from(source: &'a str) -> Vec<Token> {
+        let mut lexer = Lexer::new(source);
+        lexer.lex();
+        lexer.tokens
+    }
+
     fn peek(&mut self) -> Option<&char> {
         self.chars.peek()
     }
