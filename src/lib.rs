@@ -1,3 +1,6 @@
+pub mod lex;
+
+pub use lex::Lexer;
 use std::fs;
 use std::collections::HashMap;
 
@@ -26,17 +29,9 @@ pub fn decode(args: &Vec<String>) -> Result<(), ()> {
 fn frequenzy<'a>(content: &'a String) -> HashMap<&'a str, u32> {
     let mut words = HashMap::new();
 
-    for line in content.lines() {
-        for word in line.split(' ') {
-            println!("{:?}", word);
-
-            if words.contains_key(word) {
-                *words.get_mut(word).unwrap() += 1;
-            } else {
-                words.insert(word, 1);
-            }
-        }
-    }
+    let mut lexer = Lexer::new(content.as_str());
+    lexer.lex();
+    println!("{:?}", lexer.tokens);
 
     words
 }
