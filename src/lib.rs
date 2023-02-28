@@ -5,15 +5,11 @@ pub mod lex;
 pub use lex::{Token, Lexer};
 
 use std::fs;
+use std::io::Write;
 use std::collections::HashMap;
 
-pub struct File {
-    header: HashMap<String, String>,
-    
-}
-
 pub struct Replace {
-    pub cur: Vec<u8>,
+    cur: Vec<u8>,
 }
 
 impl Replace {
@@ -43,12 +39,26 @@ impl Replace {
 
         match std::str::from_utf8(&self.cur) {
             Ok(s) => s,
-            Err(e) => panic!("I failed to implement this..."),
+            Err(_e) => panic!("I failed to implement this..."),
         }
     }
 }
 
+pub struct File {
+    name: String,
+    header: String,
+    content: String,
+}
+
 impl File {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            header: String::new(),
+            content: String::new(),
+        }
+    }
+
     pub fn encode(&self, args: &Vec<String>) -> Result<(), ()> {
         let filename = fs::canonicalize(&args[2]).expect(&format!("File: {} not found!", &args[2]));
 
@@ -60,8 +70,13 @@ impl File {
             }
         };
 
-        let conmpressed = File::compress(&content);
-        //println!("{:?}", word_frequenzy);
+        let mut file = File::new(filename.display().to_string().as_str());
+        let (words, tokens) = File::filter_words(&content);
+        let value_to_token = file.create_header(&words);
+        file.create_content(&value_to_token, &tokens);
+
+        let mut compressed_file = std::fs::File::create(&format!("{}.tb",file.name)).unwrap();
+        compressed_file.write_all(file.content.as_bytes().try_into().unwrap()).unwrap();
 
         Ok(())
     }
@@ -71,28 +86,53 @@ impl File {
         Ok(())
     }
 
-    fn create_header(&mut self, words: &mut Vec<(String, usize)>) {
-        words.sort_by(|a,b| (b.0.len()*b.1).partial_cmp(&(a.0.len() * a.1)).unwrap());
+    fn create_header(&mut self, words: &HashMap<String, usize>) -> HashMap<String, String> {
+        let mut token = Replace::new();
+        let mut strs = words.iter().map(|(s,n)| (s.clone(),*n)).collect::<Vec<(String, usize)>>();
+        let mut maped = HashMap::new();
+        strs.sort_by(|a,b| (b.0.len() * b.1).partial_cmp(&(a.0.len() * a.1)).unwrap());
 
-        for _i in 0..words.len() {
-            //self.header.insert
+        for i in 0..strs.len() {
+            let mut cur = token.next();
+
+            while words.contains_key(cur) {
+                cur = token.next();
+                continue; 
+            }
+
+            self.header.push_str(&format!("{} {};", strs[i].0, cur));
+            maped.insert(strs[i].0.clone(), cur.to_string());
         }
+
+        self.header.pop();
+        maped
     }
 
-    fn compress(content: &String) -> Vec<(String, usize)> {
+    fn filter_words(content: &String) -> (HashMap<String, usize>, Vec<Token>) {
         let mut words = HashMap::new();
-        let mut tokens = Lexer::get_tokens_from(content.as_str());
+        let tokens = Lexer::get_tokens_from(content.as_str());
 
         for i in 0..tokens.len() {
-            match &tokens[i]{
+            match &tokens[i] {
                 Token::Word(word) => match words.contains_key(word.as_str()) {
                     true =>  { *words.get_mut(word).unwrap() += 1; },
                     false => { words.insert(word.clone(), 1); },
                 },
-                Token::Special(ch) => (),
+                Token::Special(_ch) => (),
             };
         }
 
-        words.iter().map(|(s,n)| (s.clone(),*n)).collect::<Vec<(String, usize)>>()
+        (words, tokens)
+    }
+
+    fn create_content(&mut self, value_to_tokens: &HashMap<String, String>, tokens: &Vec<Token>) {
+        self.content.push_str(&format!("{}\n", self.header));
+
+        for i in 0..tokens.len() {
+            match &tokens[i] {
+                Token::Word(word) => self.content.push_str(value_to_tokens[word].as_str()),
+                Token::Special(ch) => self.content.push(*ch),
+            }
+        }
     }
 }

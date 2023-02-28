@@ -1,8 +1,26 @@
 // Tomb - file compressing
 // (c) aichingert
 
-use tomb::{encode,decode};
-use tomb::lex;
+use tomb::{File,Replace};
+use std::path::Path;
+
+fn is_file(args: &Vec<String>) {
+    let file: tomb::File = tomb::File::new(args[1].as_str());
+
+    match args[1].as_str() {
+        "encode" => {
+            let res = file.encode(&args);
+        },
+        "decode" => {
+        },
+        _ => {
+            println!("Invalid option {:?}", args[1]);
+            std::process::exit(1);
+        }
+    };
+
+
+}
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -12,17 +30,11 @@ fn main() {
         std::process::exit(1);
     }
 
-    match args[1].as_str() {
-        "encode" => {
-            let res = encode(&args);
-        },
-        "decode" => {
-            let res = decode(&args);
-        },
-        _ => {
-            println!("Invalid option {:?}", args[1]);
-            std::process::exit(1);
-        }
+    let path = Path::new(args[1].as_str());
+    
+    match path.is_dir() {
+        true => (),
+        false => is_file(&args),
     };
 
     println!("{:?}", args);
