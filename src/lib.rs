@@ -59,31 +59,59 @@ impl File {
         }
     }
 
-    pub fn encode(&self, args: &Vec<String>) -> Result<(), ()> {
-        let filename = fs::canonicalize(&args[2]).expect(&format!("File: {} not found!", &args[2]));
-
-        let content = match fs::read_to_string(&filename) {
+    pub fn encode(&mut self) -> Result<(), ()> {
+        let content = match fs::read_to_string(&self.name) {
             Ok(con) => con,
             Err(e) => {
-                println!("Cannot open file {filename:?} because {:?}", e);
+                println!("Cannot open file {} because {:?}",self.name, e);
                 std::process::exit(1);
             }
         };
 
-        let mut file = File::new(filename.display().to_string().as_str());
         let (words, tokens) = File::filter_words(&content);
-        let value_to_token = file.create_header(&words);
-        file.create_content(&value_to_token, &tokens);
+        let value_to_token = self.create_header(&words);
+        self.create_content(&value_to_token, &tokens);
 
-        let mut compressed_file = std::fs::File::create(&format!("{}.tb",file.name)).unwrap();
-        compressed_file.write_all(file.content.as_bytes().try_into().unwrap()).unwrap();
+        let mut compressed_file = std::fs::File::create(&format!("{}.tb",self.name)).unwrap();
+        compressed_file.write_all(self.content.as_bytes().try_into().unwrap()).unwrap();
 
         Ok(())
     }
 
-    pub fn decode(args: &Vec<String>) -> Result<(), ()> {
+    pub fn decode(&mut self) -> Result<(), ()> {
+        let (mapings, content) = self.read_header();
+        self.reproduce_content(&content,&mapings);
+        self.name = self.name[..self.name.len()-3].to_string();
+
+        let mut decoded = std::fs::File::create(&format!("{}",self.name)).unwrap();
+        decoded.write_all(self.content.as_bytes().try_into().unwrap()).unwrap();
 
         Ok(())
+    }
+
+    fn read_header(&self) -> (HashMap<String, String>, String) {
+        let mut mapings = HashMap::new();
+        let content = fs::read_to_string(&self.name).unwrap();
+
+        let (head, rest) = content.split_once("\n").unwrap();
+
+        for token in head.split(';') {
+            let (value, map) = token.split_once(' ').unwrap();
+            mapings.insert(map.to_string(), value.to_string());
+        }
+
+        (mapings, rest.to_string())
+    }
+
+    fn reproduce_content(&mut self, content: &String, mapings: &HashMap<String, String>) {
+        let tokens = Lexer::get_tokens_from(content);
+
+        for i in 0..tokens.len() {
+            match &tokens[i] {
+                Token::Word(tok) => self.content.push_str(&mapings[tok]),
+                Token::Special(ch) => self.content.push(*ch),
+            }
+        }
     }
 
     fn create_header(&mut self, words: &HashMap<String, usize>) -> HashMap<String, String> {

@@ -1,17 +1,19 @@
 // Tomb - file compressing
 // (c) aichingert
 
-use tomb::{File,Replace};
+use tomb::File;
 use std::path::Path;
 
 fn is_file(args: &Vec<String>) {
-    let file: tomb::File = tomb::File::new(args[1].as_str());
+    let filename = std::fs::canonicalize(&args[2]).expect(&format!("File: {} not found!", &args[2]));
+    let mut file: File = tomb::File::new(&filename.display().to_string());
 
     match args[1].as_str() {
         "encode" => {
-            let res = file.encode(&args);
+            let _res = file.encode();
         },
         "decode" => {
+            let _res = file.decode();
         },
         _ => {
             println!("Invalid option {:?}", args[1]);
