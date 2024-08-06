@@ -62,6 +62,7 @@ uint8_t hash_insert(hash_table_t* hash_table, item_t* item) {
         item_t* cur = (item_t*)node->data;
 
         if (strcmp(cur->key, item->key) == 0) {
+            cur->value += item->value;
             return 0;
         }
     }

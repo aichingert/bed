@@ -1,6 +1,8 @@
 #ifndef HASH_H
 #define HASH_H
 
+#include <stdint.h>
+
 #include "list.h"
 
 typedef struct {
@@ -13,7 +15,7 @@ typedef struct {
 } hash_table_t;
 
 hash_table_t* hash_new();
-item_t* item_new();
+item_t* item_new(char* key, int value);
 
 uint8_t hash_insert(hash_table_t* hash_table, item_t* item);
 uint8_t hash_remove(hash_table_t* hash_table, char* key);

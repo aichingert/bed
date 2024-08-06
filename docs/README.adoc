@@ -4,4 +4,4 @@ aichingert
 :toc: 
 :toclevels: 3
 
-this is a simple text compression where I attempt to make a file as small as possible without looking at tar or other compression libraries.
+this is a simple text compression project where I attempt to make a file as small as possible without looking at tar or other compression libraries.
