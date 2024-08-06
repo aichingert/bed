@@ -1,0 +1,7 @@
+= tomb
+aichingert
+:icons: font
+:toc: 
+:toclevels: 3
+
+this is a simple text compression where I attempt to make a file as small as possible without looking at tar or other compression libraries.
