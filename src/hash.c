@@ -62,7 +62,6 @@ uint8_t hash_insert(hash_table_t* hash_table, item_t* item) {
         item_t* cur = (item_t*)node->data;
 
         if (strcmp(cur->key, item->key) == 0) {
-            cur->value += item->value;
             return 0;
         }
     }
@@ -76,12 +75,14 @@ uint8_t hash_remove(hash_table_t* hash_table, char* key) {
 
     if (hash_table->items[position] == NULL) return 0;
 
-    for (node_t* node = hash_table->items[position]->head; node != NULL; node = node->next) {
+    list_t* list = hash_table->items[position];
+
+    for (node_t* node = list->head; node != NULL; node = node->next) {
         item_t* cur = (item_t*)node->data;
 
         if (strcmp(cur->key, key) == 0) {
             if (node->prev == NULL) {
-                hash_table->items[position]->head = node->next;
+                list->head = node->next;
 
                 if (node->next) {
                     node->prev = NULL;
