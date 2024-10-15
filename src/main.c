@@ -1,42 +1,43 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 
-#include "lex.h"
-#include "encode.h"
+#include <wayland-client.h>
 
-const char* help = 
-    "info: Usage: tomb [OPTION] [FILE]\n"
-    "\n"
-    "Options:\n"
-    "  -e --encode to compress the file\n"
-    "  -d --decode to restore the previous state\n"
-    "  --help lists this information\n";
+static void registry_handle_global(
+        void *data, 
+        struct wl_registry *registry,
+		uint32_t name, 
+        const char *interface, 
+        uint32_t version
+) {
+	printf("interface: '%s', version: %d, name: %d\n", interface, version, name);
+}
 
-int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        printf("%s", help);
+static void registry_handle_global_remove(
+        void *data, 
+        struct wl_registry *registry,
+		uint32_t name
+) {
+	// This space deliberately left blank
+}
+
+static const struct wl_registry_listener registry_listener = {
+	.global = registry_handle_global,
+	.global_remove = registry_handle_global_remove,
+};
+
+int main(void) {
+    struct wl_display *display = wl_display_connect(NULL);
+
+    if (!display) {
+        fprintf(stderr, "Failed to connect to Wayland display.\n");
         return 1;
     }
 
-    FILE* file = fopen(argv[2], "r");
+    struct wl_registry *registry = wl_display_get_registry(display);
+	wl_registry_add_listener(registry, &registry_listener, NULL);
+	wl_display_roundtrip(display);
 
-    if (file == NULL) {
-        printf("File cannot be opened\n");
-        return 1;
-    }
-
-    lex_t* lexer = lex_file(file);
-
-    if (strcmp(argv[1], "-e") == 0 || strcmp(argv[1], "--encode") == 0) {
-        encode_file(lexer, "out.tb");
-    } else if (strcmp(argv[1], "-d") == 0 || strcmp(argv[1], "--decode") == 0) {
-        printf("DECODING\n");
-    } else {
-        printf("no such option: \033[0;31m%s\n\033[0mtry --help\n", argv[1]);
-        return 1;
-    }
-
+    wl_display_disconnect(display);
     return 0;
 }
