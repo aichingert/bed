@@ -1,7 +1,20 @@
-= tomb
+= toh
 aichingert
 :icons: font
 :toc: 
 :toclevels: 3
 
-this is a simple text compression project where I attempt to make a file as small as possible without looking at tar or other compression libraries.
+a visualisation of the tower of hanois with a customizable amount of towers raw wayland to create the window and a graphics api to fill the buffers.
+
+== Preview
+
+#TODO: add finished image of the application#
+
+== How to run
+
+[source, sh]
+----
+git clone https://github.com/aichingert/toh.git
+cd toh
+make run
+----
