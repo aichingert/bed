@@ -1,3 +1,6 @@
 int main(void) {
-    return 1;
+    Window win = create_window(480, 640);
+
+    return 0;
+
 }
