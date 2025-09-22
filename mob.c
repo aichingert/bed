@@ -12,12 +12,14 @@
 #define UNIT_PATH_LEN   sizeof(UNIT_PATH) / sizeof(UNIT_PATH[0]) - 1
 
 static const char *FLAGS[] = {
+    "-std=c23",
     "-Wall",
     "-Wextra",
 };
 static const uint32_t FLAG_COUNT = sizeof(FLAGS) / sizeof(FLAGS[0]);
 static const char *PATHS[] = {
     "src/bed.c",
+    "lib/string.c",
     "lib/types.c",
     "lib/window.c",
 };
