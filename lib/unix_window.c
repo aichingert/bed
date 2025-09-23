@@ -1,10 +1,12 @@
-#ifdef _win32
-// TODO: windows
-#elif __unix__
+// NOTE: https://gaultier.github.io/blog/wayland_from_scratch.html
+// NOTE: only supporting wayland
 
 #include <stdio.h>
 
-// NOTE: https://gaultier.github.io/blog/wayland_from_scratch.html
+typedef struct Window {
+    u16 width;
+    u16 height;
+} Window;
 
 static const u32 wayland_display_object_id = 1;
 static const u16 wayland_wl_registry_event_global = 0;
@@ -30,45 +32,50 @@ static const u32 wayland_format_xrgb8888 = 1;
 static const u32 wayland_header_size = 8;
 static const u32 color_channels = 4;
 
-// NOTE: only supporting wayland
-typedef struct Window {
-    u16 width;
-    u16 height;
-} Window;
-
-//static i32 wayland_display_connect() {
-//    char *xdg_runtime_dir = 
-//}
-
-#endif 
-
-void getenv(String var) {
+void read_wayland_env(
+        String xdg_runtime_dir_name, 
+        String *xdg_runtime_dir, 
+        String wayland_display_name, 
+        String *wayland_display
+) {
     const char **env_ptr = ENV;
 
-    while (*env_ptr != NULL) {
-        bool is_match = true;
-
-        for (u16 i = 0; i < var.len; i++) {
-            if ((*env_ptr)[i] == '\0' || (*env_ptr)[i] != var.val[i]) {
-                printf("%c - %c | %d / %d\n", (*env_ptr)[i], var.val[i], i, var.len);
-                printf("%s\n", *env_ptr);
-                is_match = false;
-                break;
-            }
+    while (*env_ptr != NULL && (xdg_runtime_dir->len == 0 || wayland_display->len == 0)) {
+        if          (c_string_begins_with(*env_ptr, xdg_runtime_dir_name)) {
+            *xdg_runtime_dir = from_c_string(*env_ptr + xdg_runtime_dir_name.len + 1);
+        } else if   (c_string_begins_with(*env_ptr, wayland_display_name)) {
+            *wayland_display = from_c_string(*env_ptr + wayland_display_name.len + 1);
         }
 
-        if (is_match) {
-            printf("%s\n", *env_ptr);
-            return;
-        }
-
-        env_ptr++;
+        env_ptr += 1;
     }
 
-    printf("not found\n");
+    xdg_runtime_dir->val = NULL;
+}
+
+s32 wayland_display_connect() {
+    String xdg_runtime_dir = {0};
+    String wayland_display = {0};
+    read_wayland_env(S("XDG_RUNTIME_DIR"), &xdg_runtime_dir, S("WAYLAND_DISPLAY"), &wayland_display);
+
+    if (xdg_runtime_dir.val == NULL) {
+        printf("ERROR: no xdg runtime dir set\n");
+        // TODO: sketchy assert
+        char a = *xdg_runtime_dir.val;
+        (void)a;
+    }
+    if (wayland_display.val == NULL) {
+        wayland_display = S("wayland-0");
+    }
+
+    printf("%s - %s\n", xdg_runtime_dir.val, wayland_display.val);
+
+    return 0;
 }
 
 Window create_window(u16 width, u16 height) {
+    wayland_display_connect();
+
     return (Window){
         .width = width,
         .height = height,

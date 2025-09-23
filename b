@@ -1,3 +1,9 @@
 #!/bin/sh
 
-clang -DMOB_SELF_BUILD=1 -Wall -Wextra mob.c -o mob && ./mob && rm mob
+set -e
+
+clang -Wall -Wextra mob.c -o mob
+./mob 
+rm mob 
+./bed_unit
+rm bed_unit

@@ -21,7 +21,8 @@ static const char *PATHS[] = {
     "src/bed.c",
     "lib/string.c",
     "lib/types.c",
-    "lib/window.c",
+    "lib/unix_window.c",
+    "lib/unix_socket.c",
 };
 static const uint32_t PATH_COUNT = sizeof(PATHS) / sizeof(PATHS[0]);
 
