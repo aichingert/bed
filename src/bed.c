@@ -1,6 +1,8 @@
-static const char **ENV = NULL;
+#include <stdio.h>
 
-s32 main(s32 argc, char **argv, const char **environ) {
+static char **ENV = NULL;
+
+s32 main(s32 argc, char **argv, char **environ) {
     ENV = environ;
 
     Window win = create_window(480, 640);

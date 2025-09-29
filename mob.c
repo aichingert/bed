@@ -14,15 +14,15 @@
 static const char *FLAGS[] = {
     "-std=c23",
     "-Wall",
-    "-Wextra",
 };
 static const uint32_t FLAG_COUNT = sizeof(FLAGS) / sizeof(FLAGS[0]);
 static const char *PATHS[] = {
     "src/bed.c",
-    "lib/string.c",
+    "lib/mem.c",
     "lib/types.c",
+    "lib/string.c",
+    "lib/unix_sys.c",
     "lib/unix_window.c",
-    "lib/unix_socket.c",
 };
 static const uint32_t PATH_COUNT = sizeof(PATHS) / sizeof(PATHS[0]);
 
@@ -439,7 +439,7 @@ bool is_ident_start(char character) {
 }
 
 bool is_ident(char character) {
-    return is_ident_start(character) || (character >= '0' && character <= '9');
+    return is_ident_start(character) || (character >= '0' && character <= '9') || (character == '_');
 }
 
 bool is_line_comment(uint32_t pos, uint32_t len, const char *source) {

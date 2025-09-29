@@ -1,7 +1,8 @@
 // NOTE: https://gaultier.github.io/blog/wayland_from_scratch.html
 // NOTE: only supporting wayland
 
-#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 typedef struct Window {
     u16 width;
@@ -38,7 +39,7 @@ void read_wayland_env(
         String wayland_display_name, 
         String *wayland_display
 ) {
-    const char **env_ptr = ENV;
+    char **env_ptr = ENV;
 
     while (*env_ptr != NULL && (xdg_runtime_dir->len == 0 || wayland_display->len == 0)) {
         if          (c_string_begins_with(*env_ptr, xdg_runtime_dir_name)) {
@@ -49,8 +50,6 @@ void read_wayland_env(
 
         env_ptr += 1;
     }
-
-    xdg_runtime_dir->val = NULL;
 }
 
 s32 wayland_display_connect() {
@@ -58,7 +57,9 @@ s32 wayland_display_connect() {
     String wayland_display = {0};
     read_wayland_env(S("XDG_RUNTIME_DIR"), &xdg_runtime_dir, S("WAYLAND_DISPLAY"), &wayland_display);
 
-    if (xdg_runtime_dir.val == NULL) {
+    struct sockaddr_un addr = {.sun_family = AF_UNIX};
+
+    if (xdg_runtime_dir.val == NULL || xdg_runtime_dir.len > sizeof(addr.sun_path)) {
         printf("ERROR: no xdg runtime dir set\n");
         // TODO: sketchy assert
         char a = *xdg_runtime_dir.val;
@@ -68,7 +69,16 @@ s32 wayland_display_connect() {
         wayland_display = S("wayland-0");
     }
 
-    printf("%s - %s\n", xdg_runtime_dir.val, wayland_display.val);
+    memcpy(addr.sun_path, xdg_runtime_dir.val, xdg_runtime_dir.len);
+    addr.sun_path[xdg_runtime_dir.len] = '/';
+    memcpy(addr.sun_path + xdg_runtime_dir.len + 1, wayland_display.val, wayland_display.len);
+
+    s32 fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd == -1) {
+        SYS_EXIT(1);
+    }
+
+    printf("%s\n", addr.sun_path);
 
     return 0;
 }
