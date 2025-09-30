@@ -1,9 +1,6 @@
 // NOTE: https://gaultier.github.io/blog/wayland_from_scratch.html
 // NOTE: only supporting wayland
 
-#include <sys/socket.h>
-#include <sys/un.h>
-
 typedef struct Window {
     u16 width;
     u16 height;
@@ -41,11 +38,14 @@ void read_wayland_env(
 ) {
     char **env_ptr = ENV;
 
-    while (*env_ptr != NULL && (xdg_runtime_dir->len == 0 || wayland_display->len == 0)) {
+    while (*env_ptr != NULL 
+            && (xdg_runtime_dir->len == 0 || wayland_display->len == 0)) {
         if          (c_string_begins_with(*env_ptr, xdg_runtime_dir_name)) {
-            *xdg_runtime_dir = from_c_string(*env_ptr + xdg_runtime_dir_name.len + 1);
+            *xdg_runtime_dir = from_c_string(
+                    *env_ptr + xdg_runtime_dir_name.len + 1);
         } else if   (c_string_begins_with(*env_ptr, wayland_display_name)) {
-            *wayland_display = from_c_string(*env_ptr + wayland_display_name.len + 1);
+            *wayland_display = from_c_string(
+                    *env_ptr + wayland_display_name.len + 1);
         }
 
         env_ptr += 1;
@@ -55,11 +55,15 @@ void read_wayland_env(
 s32 wayland_display_connect() {
     String xdg_runtime_dir = {0};
     String wayland_display = {0};
-    read_wayland_env(S("XDG_RUNTIME_DIR"), &xdg_runtime_dir, S("WAYLAND_DISPLAY"), &wayland_display);
+    read_wayland_env(
+            S("XDG_RUNTIME_DIR"), 
+            &xdg_runtime_dir, 
+            S("WAYLAND_DISPLAY"), 
+            &wayland_display);
 
-    struct sockaddr_un addr = {.sun_family = AF_UNIX};
+    UnixSocketAddress addr = { .socket_family = AF_UNIX };
 
-    if (xdg_runtime_dir.val == NULL || xdg_runtime_dir.len > sizeof(addr.sun_path)) {
+    if (xdg_runtime_dir.val == NULL) {
         printf("ERROR: no xdg runtime dir set\n");
         // TODO: sketchy assert
         char a = *xdg_runtime_dir.val;
@@ -69,18 +73,21 @@ s32 wayland_display_connect() {
         wayland_display = S("wayland-0");
     }
 
-    memcpy(addr.sun_path, xdg_runtime_dir.val, xdg_runtime_dir.len);
-    addr.sun_path[xdg_runtime_dir.len] = '/';
-    memcpy(addr.sun_path + xdg_runtime_dir.len + 1, wayland_display.val, wayland_display.len);
+    assert(
+            xdg_runtime_dir.len + wayland_display.len + 1 < UNIX_PATH_MAX,
+            "wayland socket path does not fit");
+    memcpy(addr.socket_path, xdg_runtime_dir.val, xdg_runtime_dir.len);
+    addr.socket_path[xdg_runtime_dir.len] = '/';
+    memcpy(
+            addr.socket_path + xdg_runtime_dir.len + 1, 
+            wayland_display.val, wayland_display.len);
 
-    s32 fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd == -1) {
-        SYS_EXIT(1);
-    }
+    s32 fd = sys_socket(AF_UNIX, SOCK_STREAM, 0);
+    assert(fd != -1, "unable to create socket");
+    s32 result = sys_connect(fd, (SocketAddress*)&addr, sizeof(addr));
+    assert(result != -1, "unable to connect to wayland socket");
 
-    printf("%s\n", addr.sun_path);
-
-    return 0;
+    return fd;
 }
 
 Window create_window(u16 width, u16 height) {

@@ -14,6 +14,8 @@
 static const char *FLAGS[] = {
     "-std=c23",
     "-Wall",
+    "-Wextra",
+    "-ffreestanding",
 };
 static const uint32_t FLAG_COUNT = sizeof(FLAGS) / sizeof(FLAGS[0]);
 static const char *PATHS[] = {
@@ -22,6 +24,7 @@ static const char *PATHS[] = {
     "lib/types.c",
     "lib/string.c",
     "lib/unix_sys.c",
+    "lib/unix_socket.c",
     "lib/unix_window.c",
 };
 static const uint32_t PATH_COUNT = sizeof(PATHS) / sizeof(PATHS[0]);
