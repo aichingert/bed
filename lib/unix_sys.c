@@ -1,5 +1,6 @@
 #define SYS_CALL_SOCKET     41
 #define SYS_CALL_CONNECT    42
+#define SYS_CALL_SENDTO     44
 #define SYS_CALL_EXIT       60
 
 void assert(bool condition, char *msg) {
@@ -55,6 +56,39 @@ s32 sys_connect(
     );
     
     return (s32)result;
+}
+
+u64 sys_sendto(
+        s32 socket_fd, 
+        u8 *buf,
+        u64 len,
+        s32 flags,
+        const SocketAddress *dest_addr,
+        u32 addr_len
+) {
+    u64 result = 0;
+
+    __asm__ volatile (
+            "   movq %[sys_call_n],     %%rax\n"
+            "   movq %[asm_socket_fd],  %%rdi\n"
+            "   movq %[asm_buffer],     %%rsi\n"
+            "   movq %[asm_buffer_len], %%rdx\n"
+            "   movq %[asm_flags],      %%r10\n"
+            "   movq %[asm_dest_addr],  %%r8\n"
+            "   movq %[asm_addr_len],   %%r9\n"
+            "   syscall\n"
+            : "=r" (result)
+            :   [sys_call_n]        "r" ((u64)SYS_CALL_SENDTO),
+                [asm_socket_fd]     "r" ((u64)socket_fd),
+                [asm_buffer]        "r" ((u64)buf),
+                [asm_buffer_len]    "r" (len),
+                [asm_flags]         "r" ((u64)flags),
+                [asm_dest_addr]     "r" ((u64)dest_addr),
+                [asm_addr_len]      "r" ((u64)addr_len)
+            : "%rdi", "%rsi", "%rdx", "%r10", "%r8", "%r9"
+    );
+    
+    return result;
 }
 
 void sys_exit(u16 exit_code) {

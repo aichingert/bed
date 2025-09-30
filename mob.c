@@ -557,6 +557,8 @@ Token consume_compiler_instruction(
         tok.type = C_ENDIF;
     } else if   (diff == 6 && strncmp(source + tok.beg, "#error", diff) == 0) {
         tok.type = C_ERROR;
+    } else if   (diff == 1 && strncmp(source + tok.beg, "##", diff) == 0) {
+        tok.type = C_DEFINE;
     } else {
         printf("ERROR: either unknown compiler intrinsic or invalid c file -> `%s`, line=%d\n", path, line);
         assert(false);

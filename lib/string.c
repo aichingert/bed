@@ -1,4 +1,3 @@
-
 struct String {
     char *val;
     u64 len;

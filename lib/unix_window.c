@@ -6,6 +6,8 @@ typedef struct Window {
     u16 height;
 } Window;
 
+u32 wayland_current_id = 1;
+
 static const u32 wayland_display_object_id = 1;
 static const u16 wayland_wl_registry_event_global = 0;
 static const u16 wayland_shm_pool_event_format = 0;
@@ -60,19 +62,13 @@ s32 wayland_display_connect() {
             &xdg_runtime_dir, 
             S("WAYLAND_DISPLAY"), 
             &wayland_display);
+    assert(xdg_runtime_dir.val != NULL, "no xdg runtime dir set");
 
-    UnixSocketAddress addr = { .socket_family = AF_UNIX };
-
-    if (xdg_runtime_dir.val == NULL) {
-        printf("ERROR: no xdg runtime dir set\n");
-        // TODO: sketchy assert
-        char a = *xdg_runtime_dir.val;
-        (void)a;
-    }
     if (wayland_display.val == NULL) {
         wayland_display = S("wayland-0");
     }
 
+    UnixSocketAddress addr = { .socket_family = AF_UNIX };
     assert(
             xdg_runtime_dir.len + wayland_display.len + 1 < UNIX_PATH_MAX,
             "wayland socket path does not fit");
@@ -90,8 +86,43 @@ s32 wayland_display_connect() {
     return fd;
 }
 
+ #define roundup_4(n) (((n) + 3) & -4)
+
+u32 wayland_display_get_registry(s32 fd) {
+    u64 size = 0;
+    char buf[128] = "";
+
+    mem_write_u32(buf, &size, sizeof(buf), wayland_display_object_id);
+    mem_write_u16(
+            buf, 
+            &size, 
+            sizeof(buf), 
+            wayland_wl_display_get_registry_opcode);
+    u16 msg_announced_size = wayland_header_size + sizeof(wayland_current_id);
+    assert(
+            roundup_4(msg_announced_size) == msg_announced_size, 
+            "invalid msg size");
+    mem_write_u16(
+            buf, 
+            &size, 
+            sizeof(buf), 
+            msg_announced_size);
+
+    wayland_current_id += 1;
+    mem_write_u32(buf, &size, sizeof(buf), wayland_current_id);
+
+    assert(((s64)size != sys_sendto(fd, buf, size, MSG_WAITALL, NULL, 0)), "send failed");
+
+    printf(
+            "-> wl_display@%u.get_registry: wl_registry=%u\n",
+            wayland_display_object_id, 
+            wayland_current_id);
+    return wayland_current_id;
+}
+
 Window create_window(u16 width, u16 height) {
-    wayland_display_connect();
+    s32 fd = wayland_display_connect();
+    u32 wl_registry = wayland_display_get_registry(fd);
 
     return (Window){
         .width = width,
