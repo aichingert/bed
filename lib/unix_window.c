@@ -90,7 +90,7 @@ s32 wayland_display_connect() {
 
 u32 wayland_display_get_registry(s32 fd) {
     u64 size = 0;
-    char buf[128] = "";
+    u8 buf[128] = {0};
 
     mem_write_u32(buf, &size, sizeof(buf), wayland_display_object_id);
     mem_write_u16(
@@ -111,7 +111,7 @@ u32 wayland_display_get_registry(s32 fd) {
     wayland_current_id += 1;
     mem_write_u32(buf, &size, sizeof(buf), wayland_current_id);
 
-    assert(((s64)size != sys_sendto(fd, buf, size, MSG_WAITALL, NULL, 0)), "send failed");
+    assert(((s64)size != sys_sendto(fd, buf, size, MSG_DONTWAIT, NULL, 0)), "send failed");
 
     printf(
             "-> wl_display@%u.get_registry: wl_registry=%u\n",

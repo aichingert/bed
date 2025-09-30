@@ -7,7 +7,7 @@ u8* memcpy(u8 *dst, u8 *src, u64 size) {
 }
 
 #define CREATE_MEM_WRITE_FUNC(type)                         \
-    static inline type mem_write_ ## type(                  \
+    static inline void mem_write_ ## type(                  \
             u8 *buf,                                        \
             u64 *size,                                      \
             u64 cap,                                        \
