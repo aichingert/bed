@@ -1,10 +1,5 @@
-toh
-xdg-shell*
-bed_unit
-bed_unit.c
-
 mob
 bed
 bootstrap
-app_unit
-app_unit.c
+
+build/out.c
