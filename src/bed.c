@@ -1,9 +1,7 @@
 #include <stdio.h>
 
-static char **ENV = NULL;
-
 s32 main(s32 argc, char **argv, char **environ) {
-    ENV = environ;
+    init_ctx((u8**)environ);
 
     Window win = create_window(480, 640);
 

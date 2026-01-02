@@ -1,0 +1,16 @@
+#!/bin/sh
+
+
+set -e
+
+pushd build
+
+clang -std=c23 -ffreestanding bootstrap.c -o bootstrap
+
+if test -n "$1" && test "$1" = "r" ; then
+    ./bootstrap
+    clang -std=c23 -ffreestanding out.c -o bed
+    ./bed
+fi
+
+popd
