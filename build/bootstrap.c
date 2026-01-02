@@ -24,11 +24,6 @@ typedef struct MobHmHeader MobHmHeader;
 typedef struct SocketAddress SocketAddress;
 typedef struct UnixSocketAddress UnixSocketAddress;
 typedef struct Window Window;
-typedef struct C_Typed C_Typed;
-typedef struct C_Struct C_Struct;
-typedef struct C_Macro C_Macro;
-typedef struct TodoBadStrHs TodoBadStrHs;
-typedef struct Module Module;
 
 #define CREATE_MEM_WRITE_FUNC(type)                         \
     static inline void mem_write_ ## type(                  \
@@ -200,11 +195,6 @@ typedef struct Module Module;
 #define MSG_EOR 0x80
 #define MSG_WAITALL 0x100
 #define roundup_4(n) (((n) + 3) & -4)
-#define IS_STRING_EQL(string, slice)        \
-    memeql(string.val, string.len, u8 ## slice, sizeof(slice) - 1)
-#define CMP_TO_STRING(slice, string, off)   \
-    memeql(u8 ## slice, sizeof(slice) - 1, string.val + off, MIN(string.len - off, sizeof(slice) - 1))
-#define MAX_IDENT_LEN 120
 
 struct Io{
     u8 *buf;
@@ -251,29 +241,6 @@ struct UnixSocketAddress{
 struct Window{
     u16 width;
     u16 height;
-};
-struct C_Typed{
-    u32     dst_begin;
-    String  raw_alias;
-};
-struct C_Struct{
-    String name;
-    String data;
-};
-struct C_Macro{
-    String name;
-    String args;
-    String data;
-};
-struct TodoBadStrHs{
-    u8 key[MAX_IDENT_LEN];
-};
-struct Module{
-    String *incs;
-    String *funcs;
-    C_Typed *typed;
-    C_Macro *defines;
-    C_Struct *structs;
 };
 
 u8* memcpy(u8 *dst, u8 *src, u64 len);
@@ -347,12 +314,7 @@ void read_wayland_env(
 s32 wayland_display_connect();
 u32 wayland_display_get_registry(s32 fd);
 Window create_window(u16 width, u16 height);
-bool is_ident_start(u8 character);
-bool is_ident(u8 character);
-bool read_ident(u32 *out_pos, String source);
-bool skip_whitespace_and_new_line(u32 *out_pos, String source);
-void ignore_comments(String source, u32 *pos);
-void parse_c_struct(Arena *allocator, Module *out_mod, String source, u32 *pos);
+s32 main(s32 argc, char **argv, char **environ);
 
 typedef struct Context {
    u8 **environment_vars;
@@ -377,4 +339,4 @@ void init_ctx(u8 **environment_vars) {
 #include "../../mob/std/unix_sys.c"
 #include "../../mob/std/unix_socket.c"
 #include "../../mob/std/unix_window.c"
-#include "mob.c"
+#include "../src/bed.c"

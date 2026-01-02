@@ -5,12 +5,25 @@ set -e
 
 pushd build
 
-clang -std=c23 -ffreestanding bootstrap.c -o bootstrap
+clang -std=c23 -ffreestanding mob/bootstrap.c -o bootstrap
+./bootstrap                         \
+    "../../mob/std/io.c"            \
+    "../../mob/std/mem.c"           \
+    "../../mob/std/sort.c"          \
+    "../../mob/std/math.c"          \
+    "../../mob/std/file.c"          \
+    "../../mob/std/types.c"         \
+    "../../mob/std/arena.c"         \
+    "../../mob/std/string.c"        \
+    "../../mob/std/collection.c"    \
+    "../../mob/std/unix_os.c"       \
+    "../../mob/std/unix_sys.c"      \
+    "../../mob/std/unix_socket.c"   \
+    "../../mob/std/unix_window.c"   \
+                                    \
+    "../src/bed.c"                  
 
-if test -n "$1" && test "$1" = "r" ; then
-    ./bootstrap
-    clang -std=c23 -ffreestanding out.c -o bed
-    ./bed
-fi
+clang -std=c23 -ffreestanding bootstrap.c -o bed
+./bed
 
 popd

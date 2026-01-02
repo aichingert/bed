@@ -1,5 +1,4 @@
-mob
 bed
-bootstrap
 
-build/out.c
+bootstrap
+bootstrap.c
