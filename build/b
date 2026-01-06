@@ -3,27 +3,25 @@
 
 set -e
 
-pushd build
-
-clang -std=c23 -ffreestanding mob/bootstrap.c -o bootstrap
+clang -std=c23 -ffreestanding -ffunction-sections build/mob/bootstrap.c -o bootstrap
 ./bootstrap                         \
-    "../../mob/std/io.c"            \
-    "../../mob/std/mem.c"           \
-    "../../mob/std/sort.c"          \
-    "../../mob/std/math.c"          \
-    "../../mob/std/file.c"          \
-    "../../mob/std/types.c"         \
-    "../../mob/std/arena.c"         \
-    "../../mob/std/string.c"        \
-    "../../mob/std/collection.c"    \
-    "../../mob/std/unix_os.c"       \
-    "../../mob/std/unix_sys.c"      \
-    "../../mob/std/unix_socket.c"   \
-    "../../mob/std/unix_window.c"   \
+    "build/mob/std/io.c"            \
+    "build/mob/std/mem.c"           \
+    "build/mob/std/sort.c"          \
+    "build/mob/std/math.c"          \
+    "build/mob/std/file.c"          \
+    "build/mob/std/types.c"         \
+    "build/mob/std/arena.c"         \
+    "build/mob/std/string.c"        \
+    "build/mob/std/collection.c"    \
+    "build/mob/std/unix_os.c"       \
+    "build/mob/std/unix_sys.c"      \
+    "build/mob/std/unix_socket.c"   \
+    "build/mob/std/unix_window.c"   \
                                     \
-    "../src/bed.c"                  
+    "src/tui.c"                     \
+    "src/bed.c"                  
 
-clang -std=c23 -ffreestanding bootstrap.c -o bed
+clang -std=c23 -ffreestanding -ffunction-sections bootstrap.c -o bed
 ./bed
 
-popd
