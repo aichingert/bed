@@ -9,17 +9,19 @@ const String TUI_CLEAR          = S("\e[2j");
 const String TUI_RESET_COLOR    = S("\e[0m");
 const String TUI_LEFT_TOP       = TUI_SET_POSITION(1, 1);
 
+const String TUI_ERROR_COLOR    = TUI_SET_COLOR(255, 100, 100);
 const String TUI_COLOR_NAVY     = TUI_SET_COLOR(45, 60, 89);
 const String TUI_COLOR_SAGE     = TUI_SET_COLOR(148, 163, 120);
 const String TUI_COLOR_YELLOW   = TUI_SET_COLOR(229, 186, 65);
 const String TUI_COLOR_ORANGE   = TUI_SET_COLOR(209, 133, 92);
 
-const String TUI_FG             = S("\e[48;2;197;200;198m");
+const String TUI_FG             = S("\e[38;2;197;200;198m");
 const String TUI_BG             = S("\e[48;2;29;31;33m");
 
 void init_tui() {
     os_write(STD_IO_FD, TUI_OPEN_BUF.val, TUI_OPEN_BUF.len);
     os_write(STD_IO_FD, TUI_CLEAR.val, TUI_CLEAR.len);
+    os_write(STD_IO_FD, TUI_FG.val, TUI_FG.len);
     os_write(STD_IO_FD, TUI_LEFT_TOP.val, TUI_LEFT_TOP.len);
 }
 

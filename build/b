@@ -19,9 +19,10 @@ clang -std=c23 -ffreestanding -ffunction-sections build/mob/bootstrap.c -o boots
     "build/mob/std/unix_socket.c"   \
     "build/mob/std/unix_window.c"   \
                                     \
+    "src/elf.c"                     \
     "src/tui.c"                     \
     "src/bed.c"                  
 
 clang -std=c23 -ffreestanding -ffunction-sections bootstrap.c -o bed
-./bed
+./bed $1
 
