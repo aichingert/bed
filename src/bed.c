@@ -40,9 +40,10 @@ s32 main(s32 argc, char **argv, u8 **environ) {
     // NOTE: load in a seperate thread
     String name = from_c_string(argv[1]);
     String temp = file_read_as_string_alloc(&ctx.allocator, name);
-
-    // NOTE: there should be a better way lol
-    Buffer data = *(Buffer*)((void*)&temp);
+    Buffer data = {
+        .mem = temp.val,
+        .len = temp.len,
+    };
 
     if (is_elf_bin(data)) {
         app_elf_mode(data);
