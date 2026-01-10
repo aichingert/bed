@@ -1,0 +1,79 @@
+#!/usr/bin/sh
+
+FILE="hx"
+
+WriteZeroes () {
+    for i in $(seq 1 "$1") ; do
+        printf '\x00' >> $FILE
+    done
+}
+
+WriteU8  () {
+    printf "\x$1" >> "$FILE"
+}
+
+WriteU16 () {
+    WriteU8 $2
+    WriteU8 $1
+}
+
+WriteU32 () {
+    WriteU16 $3 $4
+    WriteU16 $1 $2
+}
+
+WriteU64 () {
+    WriteU32 $5 $6 $7 $8
+    WriteU32 $1 $2 $3 $4
+}
+
+# elf identifier
+WriteU32 46 4c 45 7f
+
+# class         | 64 bit
+WriteU8 02
+# data encoding | lsb
+WriteU8 01
+# file version  | 1 current
+WriteU8 01
+# operating system/ABI identification
+WriteU8 03
+# ABI version   | 0 - no features
+WriteU8 00
+# padding
+WriteZeroes 7
+
+# e_type        | exe
+WriteU16 00 02
+# e_machine     | AMD
+WriteU16 00 3e
+# e_version     | current
+WriteU64 00 00 00 00 00 00 00 01
+# e_entry       | 
+WriteZeroes 8
+# e_phoff       | 
+WriteZeroes 8
+# e_shoff       | 
+WriteZeroes 8
+# e_flags       | 
+WriteZeroes 8
+# e_ehsize      | 
+WriteZeroes 8
+# e_phentsize   | 
+WriteZeroes 8
+# e_phnum       | 
+WriteZeroes 8
+# e_shentsize   | 
+WriteZeroes 8
+# e_shnum       | 
+WriteZeroes 8
+# e_shstrndx    | 
+WriteZeroes 8
+
+
+
+
+
+chmod +x $FILE
+readelf --file-header $FILE
+rm $FILE
