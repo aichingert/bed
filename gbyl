@@ -11,7 +11,7 @@
 set -e
 
 FILE="byl"
-EXPL="expl.byl"
+EXPL="func.byl"
 INST="$(date +%s)"
 BUFF=$FILE
 SIZE=0
@@ -52,16 +52,49 @@ write_u64 () {
     write_u32 $1 $2 $3 $4
 }
 
+neg_rdi () {
+    write_u8 48
+    write_u8 f7
+    write_bits_8 11011111
+}
+
 mov_rsi_imm64 () {
     write_u8 48
     write_bits_8 10111110
     write_u64 $1 $2 $3 $4 $5 $6 $7 $8
 }
 
+xor_edx_edx () {
+    write_u8 33
+    write_bits_8 11010010
+}
+
+xor_rax_rax () {
+    write_u8 48
+    write_u8 33
+    write_bits_8 11000000
+}
+
+xor_edi_edi () {
+    write_u8 33
+    write_bits_8 11111111
+}
+
+xor_rsi_rsi () {
+    write_u8 48
+    write_u8 33
+    write_bits_8 11110110
+}
+
 mov_rdx_imm64 () {
     write_u8 48
     write_bits_8 10111010
     write_u64 $1 $2 $3 $4 $5 $6 $7 $8
+}
+
+mov_edx_imm32 () {
+    write_u8        ba
+    write_u32       $1 $2 $3 $4
 }
 
 mov_edi_imm32 () {
@@ -88,15 +121,40 @@ mov_rdi_rax () {
     write_bits_8 11111000
 }
 
+mov_rdi_rcx () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11111001
+}
+
+mov_rdi_rbx () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11111011
+}
+
+mov_rcx_rax () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11001000
+}
+
+mov_rbx_rax () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11011000
+}
+
 mov_rax_rsp () {
     write_u8 48
     write_u8 89
     write_bits_8 11100000
 }
 
-mov_rdi_ea_rcx_b_rax () {
+movzx_edi_ea_rcx_b_rax () {
     write_u8 48
-    write_u8 8b
+    write_u8 0f
+    write_u8 b6
     write_bits_8 00111100
     write_bits_8 00000001
 }
@@ -177,19 +235,6 @@ inc_rdx () {
     write_bits_8 11000010
 }
 
-os_read () {
-    mov_rdx_imm64 00 00 00 00 00 00 00 00
-    mov_rsi_imm64 00 00 00 00 00 00 00 00
-    mov_eax_imm32 00 00 00 00
-    syscall
-}
-
-os_exit () {
-    mov_edi_imm32 $1 $2 $3 $4
-    mov_eax_imm32 00 00 00 3c
-    syscall
-}
-
 syscall () {
     write_u16 05 0f
 }
@@ -248,28 +293,36 @@ jcc_q_u8 0c
 # TODO: add error handling
 os_exit 00 00 00 01
 
-# get argv[1] len
-mov_rcx_ea_rsp_disp8 10 # ptr
-inc_rcx
-inc_rcx
-inc_rcx
-inc_rcx
-inc_rcx
-inc_rcx
-inc_rcx
-inc_rcx
-
-mov_rdi_ea_rcx
-mov_rdi_ea_rcx_b_rax 
-cmp_rdi_imm8 00
-jcc_nq_u8 # here
-                        # inc
-#mov_rax_ea_rcx_disp32 00 00 00 00
-#mov_rdi_rax
-mov_eax_imm32 00 00 00 3c
+# get file descriptor
+mov_eax_imm32 00 00 00 02
+mov_rdi_ea_rsp_disp8 10 # argv[1]
+mov_rsi_imm64 00 00 00 00 00 00 00 02
+mov_rdx_imm64 00 00 00 00 00 00 01 a4
 syscall
 
-os_exit 00 00 00 00
+mov_rcx_rax # fd
+
+# get file size
+mov_rdi_rax
+xor_rsi_rsi
+mov_edx_imm32 00 00 00 02
+mov_eax_imm32 00 00 00 08
+syscall
+
+mov_rbx_rax # file_size
+
+mov_rdi_rcx
+xor_rsi_rsi
+xor_edx_edx
+mov_eax_imm32 00 00 00 08
+syscall
+
+# allocate memory
+xor_edi_edi
+
+mov_rdi_rbx
+mov_eax_imm32 00 00 00 3c
+syscall
 
 BUFF=$FILE
 write_ph $SIZE

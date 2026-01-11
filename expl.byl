@@ -1,15 +1,15 @@
 Exemplus :: plex {
-    buf: u8[5],
-    ret: u16,
+    buf: s64[5],
+    ret: s64,
     G: *Exemplus,
 }
 
-name: *u8 = "";
-base: u16 : 12;
-offset: s8 : -1;
+name: *s64 = 0;
+base: s64 : 12;
+offset: s64 : -1;
 
-entry (argc: u8, argv: **u8) : u8 : {
-    mem : u8[5] = [1,2,3,4,5];
+entry (argc: s64, argv: **s64) : s64 : {
+    mem : s64[5] = [1,2,3,4,5];
     init : Exemplus {
         .buf = mem,
         .ret = base,
