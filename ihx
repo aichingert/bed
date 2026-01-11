@@ -16,93 +16,151 @@ if test -e "$FILE" ; then
     rm "$FILE"
 fi
 
-WriteZeroes () {
+write_zeroes () {
     for i in $(seq 1 "$1") ; do
         SIZE=$(expr $SIZE + 1)
         printf '\x00' >> $BUFF
     done
 }
 
-WriteBits8 () {
+write_bits_8 () {
     SIZE=$(expr $SIZE + 1)
     printf "\\$(printf '%o' "$((2#$1))")" >> $BUFF
 }
 
-WriteU8  () {
+write_u8  () {
     SIZE=$(expr $SIZE + 1)
     printf "\x$1" >> "$BUFF"
 }
 
-WriteU16 () {
-    WriteU8 $2
-    WriteU8 $1
+write_u16 () {
+    write_u8 $2
+    write_u8 $1
 }
 
-WriteU32 () {
-    WriteU16 $3 $4
-    WriteU16 $1 $2
+write_u32 () {
+    write_u16 $3 $4
+    write_u16 $1 $2
 }
 
-WriteU64 () {
-    WriteU32 $5 $6 $7 $8
-    WriteU32 $1 $2 $3 $4
+write_u64 () {
+    write_u32 $5 $6 $7 $8
+    write_u32 $1 $2 $3 $4
 }
 
-Write_ph () {
+mov_rsi_imm64 () {
+    write_u8 48
+    write_bits_8 10111110
+    write_u64 $1 $2 $3 $4 $5 $6 $7 $8
+}
+
+mov_rdx_imm64 () {
+    write_u8 48
+    write_bits_8 10111010
+    write_u64 $1 $2 $3 $4 $5 $6 $7 $8
+}
+
+mov_edi_imm32 () {
+    write_bits_8    10111111
+    write_u32       $1 $2 $3 $4
+}
+
+mov_eax_imm32 () {
+    write_bits_8    10111000
+    write_u32       $1 $2 $3 $4
+}
+
+mov_rax_rsp () {
+    write_u8 48
+    write_u8 89
+    write_bits_8 11100000
+}
+
+mov_rdi_ri_rsp_disp8 () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 01111100
+    write_bits_8 01100100
+    write_u8 $1
+}
+
+mov_rax_ri_rsp_disp8 () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 01000100
+    write_bits_8 01100100
+    write_u8 $1
+}
+
+os_read () {
+    mov_rdx_imm64 00 00 00 00 00 00 00 00
+    mov_rsi_imm64 00 00 00 00 00 00 00 00
+    mov_eax_imm32 00 00 00 00
+    syscall
+}
+
+os_exit () {
+    mov_edi_imm32 $1 $2 $3 $4
+    mov_eax_imm32 00 00 00 3c
+    syscall
+}
+
+syscall () {
+    write_u16 05 0f
+}
+
+write_ph () {
     # PROGRAM header
     ####################
-    WriteU32 00 00 00 01                # p_type        | program type load 
-    WriteU32 00 00 00 07                # p_flags       | program flags set to read, write and executable
-    WriteU64 00 00 00 00 00 00 00 00    # p_offset      | when does the segment start -> elf + program header
-    WriteU64 00 00 00 00 00 40 00 00    # p_vaddr       | virtual base address
-    WriteZeroes 8                       # p_paddr       | ignored on my system
+    write_u32 00 00 00 01                # p_type        | program type load 
+    write_u32 00 00 00 07                # p_flags       | program flags set to read, write and executable
+    write_u64 00 00 00 00 00 00 00 00    # p_offset      | when does the segment start -> elf + program header
+    write_u64 00 00 00 00 00 40 00 00    # p_vaddr       | virtual base address
+    write_zeroes 8                       # p_paddr       | ignored on my system
 
     hex=$(printf '%016x' $1)
     # p_filesz      | accumulated bytes of the instructions
-    WriteU64 "${hex:0:2}" "${hex:2:2}" "${hex:4:2}" "${hex:6:2}" "${hex:8:2}" "${hex:10:2}" "${hex:12:2}" "${hex:14:2}"
+    write_u64 "${hex:0:2}" "${hex:2:2}" "${hex:4:2}" "${hex:6:2}" "${hex:8:2}" "${hex:10:2}" "${hex:12:2}" "${hex:14:2}"
     # p_memsz       | do not allocate more memory in the image than instructions
-    WriteU64 "${hex:0:2}" "${hex:2:2}" "${hex:4:2}" "${hex:6:2}" "${hex:8:2}" "${hex:10:2}" "${hex:12:2}" "${hex:14:2}"
+    write_u64 "${hex:0:2}" "${hex:2:2}" "${hex:4:2}" "${hex:6:2}" "${hex:8:2}" "${hex:10:2}" "${hex:12:2}" "${hex:14:2}"
 
-    WriteU64 00 00 00 00 00 00 00 00    # p_align       | has something to do with v_addr and p_offset 
+    write_u64 00 00 00 00 00 00 00 00    # p_align       | has something to do with v_addr and p_offset 
 }
 
 # ELF header
 ###############
-WriteU32 46 4c 45 7f                # elf identifier
-WriteU8 02                          # class         | 64 bit
-WriteU8 01                          # data encoding | lsb
-WriteU8 01                          # file version  | 1 current
-WriteU8 03                          # operating system/ABI identification
-WriteU8 00                          # ABI version   | 0 - no features
-WriteZeroes 7                       # padding
+write_u32 46 4c 45 7f                # elf identifier
+write_u8 02                          # class         | 64 bit
+write_u8 01                          # data encoding | lsb
+write_u8 01                          # file version  | 1 current
+write_u8 03                          # operating system/ABI identification
+write_u8 00                          # ABI version   | 0 - no features
+write_zeroes 7                       # padding
 
-WriteU16 00 02                      # e_type        | exe
-WriteU16 00 3e                      # e_machine     | AMD
-WriteU32 00 00 00 01                # e_version     | current
-WriteU64 00 00 00 00 00 40 00 78    # e_entry       | set virtual base address
-WriteU64 00 00 00 00 00 00 00 40    # e_ph_off      | program header immediatle after the elf header
-WriteZeroes 8                       # e_shoff       | no section headers
-WriteZeroes 4                       # e_flags       | no flags
-WriteU16 00 40                      # e_h_size      | elf header size
-WriteU16 00 38                      # e_ph_ent_size | size of program headers
-WriteU16 00 01                      # e_ph_num      | number of program headers 
-WriteZeroes 2                       # e_shentsize   | not used.
-WriteZeroes 2                       # e_shnum       | not used.
-WriteZeroes 2                       # e_shstrndx    | not used.
+write_u16 00 02                      # e_type        | exe
+write_u16 00 3e                      # e_machine     | AMD
+write_u32 00 00 00 01                # e_version     | current
+write_u64 00 00 00 00 00 40 00 78    # e_entry       | set virtual base address
+write_u64 00 00 00 00 00 00 00 40    # e_ph_off      | program header immediatle after the elf header
+write_zeroes 8                       # e_shoff       | no section headers
+write_zeroes 4                       # e_flags       | no flags
+write_u16 00 40                      # e_h_size      | elf header size
+write_u16 00 38                      # e_ph_ent_size | size of program headers
+write_u16 00 01                      # e_ph_num      | number of program headers 
+write_zeroes 2                       # e_shentsize   | not used.
+write_zeroes 2                       # e_shnum       | not used.
+write_zeroes 2                       # e_shstrndx    | not used.
 
 SIZE=0
 BUFF=$INST
 
-WriteBits8  10111111                # mov r32, imm32
-WriteU32    00 00 00 11
-WriteBits8  10111111                # mov r32, imm32
-WriteU32    00 00 00 01
-WriteBits8  10111000                # mov r32, imm32
-WriteU32    00 00 00 3c
-WriteU16    05 0f
+mov_rdi_ri_rsp_disp8 00
+mov_eax_imm32 00 00 00 3c
+syscall
+os_exit 00 00 00 00
 
 BUFF=$FILE
-Write_ph $SIZE
+write_ph $SIZE
 cat $INST >> $FILE
 
 ndisasm -ab64 $INST
