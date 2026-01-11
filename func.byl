@@ -1,0 +1,3 @@
+entry (argc: u8, argv: **u8) : u16 : {
+    return 0;
+}

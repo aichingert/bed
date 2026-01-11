@@ -7,7 +7,11 @@
 #             ib, iw, id, io    -> immediate value byte size 1, 2, 4, 8
 #             +rb, +rw, +rd +ro -> lower 3 opcode bits encode register
 
-FILE="hx"
+# ea -> effective memory address
+set -e
+
+FILE="byl"
+EXPL="expl.byl"
 INST="$(date +%s)"
 BUFF=$FILE
 SIZE=0
@@ -65,9 +69,23 @@ mov_edi_imm32 () {
     write_u32       $1 $2 $3 $4
 }
 
+mov_rax_ea_rcx_disp32 () {
+    write_u8 48
+    write_u8 0f
+    write_u8 b6
+    write_bits_8 10000001
+    write_u32 $1 $2 $3 $4
+}
+
 mov_eax_imm32 () {
     write_bits_8    10111000
     write_u32       $1 $2 $3 $4
+}
+
+mov_rdi_rax () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11111000
 }
 
 mov_rax_rsp () {
@@ -76,7 +94,20 @@ mov_rax_rsp () {
     write_bits_8 11100000
 }
 
-mov_rdi_ri_rsp_disp8 () {
+mov_rdi_ea_rcx_b_rax () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 00111100
+    write_bits_8 00000001
+}
+
+mov_rdi_ea_rcx () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 00111001
+}
+
+mov_rdi_ea_rsp_disp8 () {
     write_u8 48
     write_u8 8b
     write_bits_8 01111100
@@ -84,12 +115,66 @@ mov_rdi_ri_rsp_disp8 () {
     write_u8 $1
 }
 
-mov_rax_ri_rsp_disp8 () {
+mov_rax_ea_rsp_disp8 () {
     write_u8 48
     write_u8 8b
     write_bits_8 01000100
     write_bits_8 01100100
     write_u8 $1
+}
+
+mov_rcx_ea_rsp_disp8 () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 01001100
+    write_bits_8 01100100
+    write_u8 $1
+}
+
+cmp_rdi_imm8 () {
+    write_u8 48
+    write_u8 83
+    write_bits_8 11111111
+    write_u8 $1
+}
+
+lea_rax_rcx () {
+    write_u8 48
+    write_u8 8d
+    write_bits_8 00000001
+}
+
+jcc_q_u8 () {
+    write_u8 74
+    write_u8 $1
+}
+
+jcc_nq_u8 () {
+    write_u8 75
+    write_u8 $1
+}
+
+jcc_lq_u8 () {
+    write_u8 76
+    write_u8 $1
+}
+
+inc_rax () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11000000
+}
+
+inc_rcx () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11000001
+}
+
+inc_rdx () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11000010
 }
 
 os_read () {
@@ -154,9 +239,36 @@ write_zeroes 2                       # e_shstrndx    | not used.
 SIZE=0
 BUFF=$INST
 
-mov_rdi_ri_rsp_disp8 00
+# Instructions
+################
+
+mov_rdi_ea_rsp_disp8 00
+cmp_rdi_imm8 02
+jcc_q_u8 0c
+# TODO: add error handling
+os_exit 00 00 00 01
+
+# get argv[1] len
+mov_rcx_ea_rsp_disp8 10 # ptr
+inc_rcx
+inc_rcx
+inc_rcx
+inc_rcx
+inc_rcx
+inc_rcx
+inc_rcx
+inc_rcx
+
+mov_rdi_ea_rcx
+mov_rdi_ea_rcx_b_rax 
+cmp_rdi_imm8 00
+jcc_nq_u8 # here
+                        # inc
+#mov_rax_ea_rcx_disp32 00 00 00 00
+#mov_rdi_rax
 mov_eax_imm32 00 00 00 3c
 syscall
+
 os_exit 00 00 00 00
 
 BUFF=$FILE
@@ -164,9 +276,8 @@ write_ph $SIZE
 cat $INST >> $FILE
 
 ndisasm -ab64 $INST
+rm $INST
 
 chmod +x $FILE
-./$FILE
-
-rm $INST
+./$FILE $EXPL
 
