@@ -1,11 +1,23 @@
 #!/usr/bin/sh
 
+# 
+# x86-64 instructions: https://www.felixcloutier.com/x86/
+# more reading: https://wiki.osdev.org/X86-64_Instruction_Encoding
+#             - https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+#             /r                -> reg and r/m operand
+#             ib, iw, id, io    -> immediate value byte size 1, 2, 4, 8
+#             +rb, +rw, +rd +ro -> lower 3 opcode bits encode register
+
 FILE="hx"
 
 WriteZeroes () {
     for i in $(seq 1 "$1") ; do
         printf '\x00' >> $FILE
     done
+}
+
+WriteBits8 () {
+    printf "\\$(printf '%o' "$((2#$1))")" >> $FILE
 }
 
 WriteU8  () {
@@ -27,53 +39,49 @@ WriteU64 () {
     WriteU32 $1 $2 $3 $4
 }
 
-# elf identifier
-WriteU32 46 4c 45 7f
+# ELF header
+###############
+WriteU32 46 4c 45 7f                # elf identifier
+WriteU8 02                          # class         | 64 bit
+WriteU8 01                          # data encoding | lsb
+WriteU8 01                          # file version  | 1 current
+WriteU8 03                          # operating system/ABI identification
+WriteU8 00                          # ABI version   | 0 - no features
+WriteZeroes 7                       # padding
 
-# class         | 64 bit
-WriteU8 02
-# data encoding | lsb
-WriteU8 01
-# file version  | 1 current
-WriteU8 01
-# operating system/ABI identification
-WriteU8 03
-# ABI version   | 0 - no features
-WriteU8 00
-# padding
-WriteZeroes 7
+WriteU16 00 02                      # e_type        | exe
+WriteU16 00 3e                      # e_machine     | AMD
+WriteU32 00 00 00 01                # e_version     | current
+WriteU64 00 00 00 00 00 40 00 78    # e_entry       | set virtual base address
+WriteU64 00 00 00 00 00 00 00 40    # e_ph_off      | program header immediatle after the elf header
+WriteZeroes 8                       # e_shoff       | no section headers
+WriteZeroes 4                       # e_flags       | no flags
+WriteU16 00 40                      # e_h_size      | elf header size
+WriteU16 00 38                      # e_ph_ent_size | size of program headers
+WriteU16 00 01                      # e_ph_num      | number of program headers 
+WriteZeroes 2                       # e_shentsize   | not used.
+WriteZeroes 2                       # e_shnum       | not used.
+WriteZeroes 2                       # e_shstrndx    | not used.
 
-# e_type        | exe
-WriteU16 00 02
-# e_machine     | AMD
-WriteU16 00 3e
-# e_version     | current
-WriteU64 00 00 00 00 00 00 00 01
-# e_entry       | 
-WriteZeroes 8
-# e_phoff       | 
-WriteZeroes 8
-# e_shoff       | 
-WriteZeroes 8
-# e_flags       | 
-WriteZeroes 8
-# e_ehsize      | 
-WriteZeroes 8
-# e_phentsize   | 
-WriteZeroes 8
-# e_phnum       | 
-WriteZeroes 8
-# e_shentsize   | 
-WriteZeroes 8
-# e_shnum       | 
-WriteZeroes 8
-# e_shstrndx    | 
-WriteZeroes 8
+# PROGRAM header
+####################
+WriteU32 00 00 00 01                # p_type        | program type load 
+WriteU32 00 00 00 07                # p_flags       | program flags set to read, write and executable
+WriteU64 00 00 00 00 00 00 00 00    # p_offset      | when does the segment start -> elf + program header
+WriteU64 00 00 00 00 00 40 00 00    # p_vaddr       | virtual base address
+WriteZeroes 8                       # p_paddr       | ignored on my system
+WriteU64 00 00 00 00 00 00 00 07    # p_filesz      | extract this into a function and accumulate bytes
+WriteU64 00 00 00 00 00 00 00 07    # p_memsz       | same as filesz
+WriteU64 00 00 00 00 00 00 00 00    # p_align       | has something to do with v_addr and p_offset
 
+WriteBits8  10111000                # mov r32, imm32
+WriteU32    00 00 00 3c
+WriteU16    05 0f
 
-
-
+readelf --file-header $FILE
+readelf -l $FILE
 
 chmod +x $FILE
-readelf --file-header $FILE
+./$FILE
 rm $FILE
+
