@@ -1,6 +1,5 @@
 #!/usr/bin/sh
 
-# 
 # x86-64 instructions: https://www.felixcloutier.com/x86/
 # more reading: https://wiki.osdev.org/X86-64_Instruction_Encoding
 #             - https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
@@ -9,19 +8,29 @@
 #             +rb, +rw, +rd +ro -> lower 3 opcode bits encode register
 
 FILE="hx"
+INST="$(date +%s)"
+BUFF=$FILE
+SIZE=0
+
+if test -e "$FILE" ; then
+    rm "$FILE"
+fi
 
 WriteZeroes () {
     for i in $(seq 1 "$1") ; do
-        printf '\x00' >> $FILE
+        SIZE=$(expr $SIZE + 1)
+        printf '\x00' >> $BUFF
     done
 }
 
 WriteBits8 () {
-    printf "\\$(printf '%o' "$((2#$1))")" >> $FILE
+    SIZE=$(expr $SIZE + 1)
+    printf "\\$(printf '%o' "$((2#$1))")" >> $BUFF
 }
 
 WriteU8  () {
-    printf "\x$1" >> "$FILE"
+    SIZE=$(expr $SIZE + 1)
+    printf "\x$1" >> "$BUFF"
 }
 
 WriteU16 () {
@@ -37,6 +46,24 @@ WriteU32 () {
 WriteU64 () {
     WriteU32 $5 $6 $7 $8
     WriteU32 $1 $2 $3 $4
+}
+
+Write_ph () {
+    # PROGRAM header
+    ####################
+    WriteU32 00 00 00 01                # p_type        | program type load 
+    WriteU32 00 00 00 07                # p_flags       | program flags set to read, write and executable
+    WriteU64 00 00 00 00 00 00 00 00    # p_offset      | when does the segment start -> elf + program header
+    WriteU64 00 00 00 00 00 40 00 00    # p_vaddr       | virtual base address
+    WriteZeroes 8                       # p_paddr       | ignored on my system
+
+    hex=$(printf '%016x' $1)
+    # p_filesz      | accumulated bytes of the instructions
+    WriteU64 "${hex:0:2}" "${hex:2:2}" "${hex:4:2}" "${hex:6:2}" "${hex:8:2}" "${hex:10:2}" "${hex:12:2}" "${hex:14:2}"
+    # p_memsz       | do not allocate more memory in the image than instructions
+    WriteU64 "${hex:0:2}" "${hex:2:2}" "${hex:4:2}" "${hex:6:2}" "${hex:8:2}" "${hex:10:2}" "${hex:12:2}" "${hex:14:2}"
+
+    WriteU64 00 00 00 00 00 00 00 00    # p_align       | has something to do with v_addr and p_offset 
 }
 
 # ELF header
@@ -63,25 +90,25 @@ WriteZeroes 2                       # e_shentsize   | not used.
 WriteZeroes 2                       # e_shnum       | not used.
 WriteZeroes 2                       # e_shstrndx    | not used.
 
-# PROGRAM header
-####################
-WriteU32 00 00 00 01                # p_type        | program type load 
-WriteU32 00 00 00 07                # p_flags       | program flags set to read, write and executable
-WriteU64 00 00 00 00 00 00 00 00    # p_offset      | when does the segment start -> elf + program header
-WriteU64 00 00 00 00 00 40 00 00    # p_vaddr       | virtual base address
-WriteZeroes 8                       # p_paddr       | ignored on my system
-WriteU64 00 00 00 00 00 00 00 07    # p_filesz      | extract this into a function and accumulate bytes
-WriteU64 00 00 00 00 00 00 00 07    # p_memsz       | same as filesz
-WriteU64 00 00 00 00 00 00 00 00    # p_align       | has something to do with v_addr and p_offset
+SIZE=0
+BUFF=$INST
 
+WriteBits8  10111111                # mov r32, imm32
+WriteU32    00 00 00 11
+WriteBits8  10111111                # mov r32, imm32
+WriteU32    00 00 00 01
 WriteBits8  10111000                # mov r32, imm32
 WriteU32    00 00 00 3c
 WriteU16    05 0f
 
-readelf --file-header $FILE
-readelf -l $FILE
+BUFF=$FILE
+Write_ph $SIZE
+cat $INST >> $FILE
+
+ndisasm -ab64 $INST
 
 chmod +x $FILE
 ./$FILE
-rm $FILE
+
+rm $INST
 
