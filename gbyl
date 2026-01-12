@@ -58,10 +58,42 @@ neg_rdi () {
     write_bits_8 11011111
 }
 
+add_r13d_imm32 () {
+    write_u8 41
+    write_u8 81
+    write_bits_8 11000101
+    write_u32 $1 $2 $3 $4
+}
+
+and_r13d_imm32 () {
+    write_u8 41
+    write_u8 81
+    write_bits_8 11100101
+    write_u32 $1 $2 $3 $4
+}
+
+mov_esi_r13d () {
+    write_u8 41
+    write_u8 8b
+    write_bits_8 11110101
+}
+
 mov_rsi_imm64 () {
     write_u8 48
     write_bits_8 10111110
     write_u64 $1 $2 $3 $4 $5 $6 $7 $8
+}
+
+mov_rsi_rax () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11110000
+}
+
+mov_rsi_r14 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11110110
 }
 
 xor_edx_edx () {
@@ -69,8 +101,7 @@ xor_edx_edx () {
     write_bits_8 11010010
 }
 
-xor_rax_rax () {
-    write_u8 48
+xor_eax_eax () {
     write_u8 33
     write_bits_8 11000000
 }
@@ -80,16 +111,39 @@ xor_edi_edi () {
     write_bits_8 11111111
 }
 
-xor_rsi_rsi () {
-    write_u8 48
+xor_esi_esi () {
     write_u8 33
     write_bits_8 11110110
+}
+
+mov_r8d_imm32 () {
+    write_u8 41
+    write_u8 b8
+    write_u32 $1 $2 $3 $4
+}
+
+mov_r9d_imm32 () {
+    write_u8 41
+    write_u8 b9
+    write_u32 $1 $2 $3 $4
+}
+
+mov_r10d_imm32 () {
+    write_u8 41
+    write_u8 ba
+    write_u32 $1 $2 $3 $4
 }
 
 mov_rdx_imm64 () {
     write_u8 48
     write_bits_8 10111010
     write_u64 $1 $2 $3 $4 $5 $6 $7 $8
+}
+
+mov_rdx_r13 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11010101
 }
 
 mov_edx_imm32 () {
@@ -100,6 +154,36 @@ mov_edx_imm32 () {
 mov_edi_imm32 () {
     write_bits_8    10111111
     write_u32       $1 $2 $3 $4
+}
+
+mov_r12_rax () {
+    write_u8 4c
+    write_u8 8b
+    write_bits_8 11100000
+}
+
+mov_r13_rax () {
+    write_u8 4c
+    write_u8 8b
+    write_bits_8 11101000
+}
+
+mov_r14_rax () {
+    write_u8 4c
+    write_u8 8b
+    write_bits_8 11110000
+}
+
+mov_rdi_r12 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11111100
+}
+
+mov_rdi_r13 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11111101
 }
 
 mov_rax_ea_rcx_disp32 () {
@@ -196,23 +280,45 @@ cmp_rdi_imm8 () {
     write_u8 $1
 }
 
+cmp_rax_imm8 () {
+    write_u8 48
+    write_u8 83
+    write_bits_8 11111000
+    write_u8 $1
+}
+
 lea_rax_rcx () {
     write_u8 48
     write_u8 8d
     write_bits_8 00000001
 }
 
-jcc_q_u8 () {
+jcc_s_imm8 () {
+    write_u8 78
+    write_u8 $1
+}
+
+jcc_ns_imm8 () {
+    write_u8 79
+    write_u8 $1
+}
+
+jcc_g_imm8 () {
+    write_u8 77
+    write_u8 $1
+}
+
+jcc_q_imm8 () {
     write_u8 74
     write_u8 $1
 }
 
-jcc_nq_u8 () {
+jcc_nq_imm8 () {
     write_u8 75
     write_u8 $1
 }
 
-jcc_lq_u8 () {
+jcc_lq_imm8 () {
     write_u8 76
     write_u8 $1
 }
@@ -289,9 +395,11 @@ BUFF=$INST
 
 mov_rdi_ea_rsp_disp8 00
 cmp_rdi_imm8 02
-jcc_q_u8 0c
-# TODO: add error handling
-os_exit 00 00 00 01
+jcc_q_imm8 0c
+# TODO: error no file provided
+mov_edi_imm32 00 00 00 01
+mov_eax_imm32 00 00 00 3c
+syscall
 
 # get file descriptor
 mov_eax_imm32 00 00 00 02
@@ -300,27 +408,60 @@ mov_rsi_imm64 00 00 00 00 00 00 00 02
 mov_rdx_imm64 00 00 00 00 00 00 01 a4
 syscall
 
-mov_rcx_rax # fd
+cmp_rax_imm8 00
+jcc_ns_imm8 0c
+# TODO: error unable to read file
+mov_edi_imm32 00 00 00 02
+mov_eax_imm32 00 00 00 3c
+syscall
+
+mov_r12_rax # fd
 
 # get file size
 mov_rdi_rax
-xor_rsi_rsi
+xor_esi_esi
 mov_edx_imm32 00 00 00 02
 mov_eax_imm32 00 00 00 08
 syscall
 
-mov_rbx_rax # file_size
+mov_r13_rax # file_size
 
-mov_rdi_rcx
-xor_rsi_rsi
+mov_rdi_r12
+xor_esi_esi
 xor_edx_edx
 mov_eax_imm32 00 00 00 08
 syscall
 
 # allocate memory
 xor_edi_edi
+add_r13d_imm32 00 00 0f ff
+and_r13d_imm32 ff ff f0 00
+mov_esi_r13d
+mov_edx_imm32 00 00 00 03
+mov_r10d_imm32 00 00 00 22
+mov_r8d_imm32 ff ff ff ff
+mov_r9d_imm32 00 00 00 00
+mov_eax_imm32 00 00 00 09
+syscall
 
-mov_rdi_rbx
+mov_r14_rax  # file content memory 
+
+# read file
+mov_rdi_r12
+mov_rsi_rax
+mov_rdx_r13
+xor_eax_eax
+syscall
+
+# print file
+
+mov_edi_imm32 00 00 00 01
+mov_rsi_r14
+mov_rdx_r13
+mov_eax_imm32 00 00 00 01
+syscall
+
+mov_rdi_rax
 mov_eax_imm32 00 00 00 3c
 syscall
 
