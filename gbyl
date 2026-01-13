@@ -445,7 +445,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 31
+jmp_imm32 00 00 00 31 # >entry
 
 # helper functions
 
@@ -532,7 +532,7 @@ add_r13d_imm32 00 00 0f ff
 and_r13d_imm32 ff ff f0 00
 mov_esi_r13d
 
-call_imm32 ff ff ff 4d # >allocate
+call_imm32 ff ff ff 4b # >allocate
 
 mov_r14_rax  # file content memory 
 
