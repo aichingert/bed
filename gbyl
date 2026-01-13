@@ -58,6 +58,19 @@ neg_rdi () {
     write_bits_8 11011111
 }
 
+shl_rsi_once () {
+    write_u8 48
+    write_u8 d1
+    write_bits_8 11100110
+}
+
+add_rsi_imm32 () {
+    write_u8 48
+    write_u8 81
+    write_bits_8 11000110
+    write_u32 $1 $2 $3 $4
+}
+
 add_r13d_imm32 () {
     write_u8 41
     write_u8 81
@@ -280,6 +293,12 @@ cmp_rdi_imm8 () {
     write_u8 $1
 }
 
+cmp_rdi_rsi () {
+    write_u8 48
+    write_u8 39
+    write_bits_8 11110111
+}
+
 cmp_rax_imm8 () {
     write_u8 48
     write_u8 83
@@ -308,6 +327,11 @@ jcc_g_imm8 () {
     write_u8 $1
 }
 
+jcc_gq_imm8 () {
+    write_u8 73
+    write_u8 $1
+}
+
 jcc_q_imm8 () {
     write_u8 74
     write_u8 $1
@@ -315,6 +339,11 @@ jcc_q_imm8 () {
 
 jcc_nq_imm8 () {
     write_u8 75
+    write_u8 $1
+}
+
+jcc_l_imm8 () {
+    write_u8 72
     write_u8 $1
 }
 
@@ -339,6 +368,15 @@ inc_rdx () {
     write_u8 48
     write_u8 ff
     write_bits_8 11000010
+}
+
+ret () {
+    write_u8 c3
+}
+
+call_imm16 () {
+    write_u8 e8
+    write_u16 $1 $2
 }
 
 syscall () {
@@ -393,6 +431,52 @@ BUFF=$INST
 # Instructions
 ################
 
+# .begin
+# jump to entry
+
+# helper functions
+
+# .allocate
+# args:
+#   rdi | addr -> always null ig? so gets cleared
+#   rsi | len  -> expected to be set
+#   rdx | protection get set by func
+#   r10 | flags      get set by func
+#   r8  | fd         no file mapping so -1
+#   r9  | pgoff     idk 0
+xor_edi_edi
+mov_edx_imm32 00 00 00 03
+mov_r10d_imm32 00 00 00 22
+mov_r8d_imm32 ff ff ff ff
+mov_r9d_imm32 00 00 00 00
+mov_eax_imm32 00 00 00 09
+syscall
+ret
+
+# .array_push
+# args: 
+#   rax | array_ptr
+#   rdi | array_len
+#   rsi | array_cap
+#   rdx | item_ptr
+#   r10 | item_len
+cmp_rdi_rsi
+jcc_l_imm8 00
+# grow branch
+# handle 0 case stupid but reduce branch 
+# and should never grow too big anyway
+add_rsi_imm32 00 00 10 00
+shl_rsi_once
+
+
+# push branch
+
+ret
+
+
+# .entry
+# args:
+#   rsp | holds argc, argv and environ probably
 mov_rdi_ea_rsp_disp8 00
 cmp_rdi_imm8 02
 jcc_q_imm8 0c
@@ -432,17 +516,11 @@ xor_edx_edx
 mov_eax_imm32 00 00 00 08
 syscall
 
-# allocate memory
-xor_edi_edi
+# .allocate
 add_r13d_imm32 00 00 0f ff
 and_r13d_imm32 ff ff f0 00
 mov_esi_r13d
-mov_edx_imm32 00 00 00 03
-mov_r10d_imm32 00 00 00 22
-mov_r8d_imm32 ff ff ff ff
-mov_r9d_imm32 00 00 00 00
-mov_eax_imm32 00 00 00 09
-syscall
+call 
 
 mov_r14_rax  # file content memory 
 
@@ -453,8 +531,16 @@ mov_rdx_r13
 xor_eax_eax
 syscall
 
-# print file
+# close file
+mov_rdi_r12
+mov_eax_imm32 00 00 00 03
+syscall
 
+# tokenize 
+
+
+
+# print file
 mov_edi_imm32 00 00 00 01
 mov_rsi_r14
 mov_rdx_r13

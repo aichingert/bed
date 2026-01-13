@@ -4,23 +4,26 @@ Exemplus :: plex {
     G: *Exemplus,
 }
 
-add (a: s64, b: s64) : s64 : {
+add (a: s64, b: s64) s64 {
     return a + b;
 }
 
-sub (a: s64, b: s64) : s64 : {
+sub (a: s64, b: s64) s64 {
     return a - b;
 }
 
-mul (a: s64, b: s64) : s64 : {
+mul (a: s64, b: s64) s64 {
     return a * b;
 }
 
-idiv (a: s64, b: s64) : s64 : {
+idiv (a: s64, b: s64) s64 {
     return a / b;
 }
 
-entry (argc: s64, argv: **s64) : s64 : {
+nop () {
+}
+
+entry (argc: s64, argv: **s64) s64 {
     name: *s64 = 0;
     base: s64 : 12;
     offset: s64 : -1;
