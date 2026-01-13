@@ -71,6 +71,13 @@ add_rsi_imm32 () {
     write_u32 $1 $2 $3 $4
 }
 
+and_rsi_imm32 () {
+    write_u8 48
+    write_u8 81
+    write_bits_8 11100110
+    write_u32 $1 $2 $3 $4
+}
+
 add_r13d_imm32 () {
     write_u8 41
     write_u8 81
@@ -352,6 +359,11 @@ jcc_lq_imm8 () {
     write_u8 $1
 }
 
+jmp_imm32 () {
+    write_u8 e9
+    write_u32 $1 $2 $3 $4
+}
+
 inc_rax () {
     write_u8 48
     write_u8 ff
@@ -374,9 +386,9 @@ ret () {
     write_u8 c3
 }
 
-call_imm16 () {
+call_imm32 () {
     write_u8 e8
-    write_u16 $1 $2
+    write_u32 $1 $2 $3 $4
 }
 
 syscall () {
@@ -433,6 +445,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
+jmp_imm32 00 00 00 31
 
 # helper functions
 
@@ -468,11 +481,9 @@ jcc_l_imm8 00
 add_rsi_imm32 00 00 10 00
 shl_rsi_once
 
-
 # push branch
 
 ret
-
 
 # .entry
 # args:
@@ -516,11 +527,12 @@ xor_edx_edx
 mov_eax_imm32 00 00 00 08
 syscall
 
-# .allocate
+# allocate file size aligned to page size
 add_r13d_imm32 00 00 0f ff
 and_r13d_imm32 ff ff f0 00
 mov_esi_r13d
-call 
+
+call_imm32 ff ff ff 4d # >allocate
 
 mov_r14_rax  # file content memory 
 

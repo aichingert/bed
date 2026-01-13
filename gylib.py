@@ -85,22 +85,14 @@ def get_label(lbl, offset, source):
 
 
 
-def get_bytes_in_range(src_lbl, dst_lbl, source):
-    assert len(src_lbl) > 0 and src_lbl[0] == '.', "error [bylib]: expected src as label"
-    assert len(dst_lbl) > 0 and dst_lbl[0] == '.', "error [bylib]: expected dst as label"
-
-    src_start = get_label(src_lbl, 0, source)
-    assert src_start != -1, "error [bylib]: did not find src label"
-    dst_start = get_label(dst_lbl, src_start, source)
-    assert dst_start != -1, "error [bylib]: did not find dst label after src lbl"
-
+def get_bytes_in_range(src, dst, source):
     sum_of_bytes = 0
+    pos = src
 
-    pos = src_start
-    while pos < dst_start and source[pos] != '\n':
+    while pos < dst and source[pos] != '\n':
         pos += 1
 
-    while pos < dst_start:
+    while pos < dst:
         if source[pos] == '#':
             while pos < len(source) and source[pos] != '\n':
                 pos += 1
@@ -114,6 +106,14 @@ def get_bytes_in_range(src_lbl, dst_lbl, source):
                 sum_of_bytes += get_bytes_from_func(source[beg:pos],  source)
         pos += 1
     return sum_of_bytes
+
+def update_call_addresses(source):
+    instruction_start = get_label(".begin", 0, source)
+    # TODO
+
+
+    print(source[instruction_start:])
+    pass
 
 def main():
     sys.argv.pop(0)
@@ -129,17 +129,30 @@ def main():
     match sys.argv[0]:
         case "-r" | "--range":
             assert len(sys.argv) > 2, "error [bylib]: range expects src and dst label"
-            sum = get_bytes_in_range(sys.argv[1], sys.argv[2], source)
-            print(f"bytes: {sum}")
+            s = sys.argv[1]
+            d = sys.argv[2]
+            assert len(s) > 0 and s[0] == '.', "error [bylib]: expected src as label"
+            assert len(d) > 0 and d[0] == '.', "error [bylib]: expected dst as label"
+
+            src_start = get_label(s, 0, source)
+            assert src_start != -1, "error [bylib]: did not find src label"
+            dst_start = get_label(d, src_start, source)
+            assert dst_start != -1, "error [bylib]: did not find dst label after src lbl"
+            sum = get_bytes_in_range(src_start, dst_start, source)
+            print(f"bytes: {sum} | {sum:02X}")
         case "-b" | "--bytes":
             assert len(sys.argv) > 1, "error [bylib]: bytes expects mnemonic to search"
             sum = get_bytes_from_func(sys.argv[1], source)
-            print(f"bytes: {sum}")
+            print(f"bytes: {sum} | {sum:02X}")
+        case "-c" | "--fix-calls":
+            calls_updated = update_call_addresses(source)
+            # TODO: write
+            print("updated x call instructions")
         case "-m" | "--multi":
             sum = 0
             for i in range(1, len(sys.argv)):
                 sum += get_bytes_from_func(sys.argv[1], source)
-            print(f"bytes: {sum}")
+            print(f"bytes: {sum} | {sum:02X}")
 
 
         case _:
