@@ -445,7 +445,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 31 # >entry
+jmp_imm32 00 00 00 3f # >entry
 
 # helper functions
 
@@ -458,6 +458,8 @@ jmp_imm32 00 00 00 31 # >entry
 #   r8  | fd         no file mapping so -1
 #   r9  | pgoff     idk 0
 xor_edi_edi
+add_rsi_imm32 00 00 0f ff
+and_rsi_imm32 ff ff f0 00
 mov_edx_imm32 00 00 00 03
 mov_r10d_imm32 00 00 00 22
 mov_r8d_imm32 ff ff ff ff
@@ -468,10 +470,9 @@ ret
 
 # .array_push
 # args: 
-#   rax | array_ptr
+#   rax | array_cap
 #   rdi | array_len
-#   rsi | array_cap
-#   rdx | item_ptr
+#   rsi | array_ptr
 #   r10 | item_len
 cmp_rdi_rsi
 jcc_l_imm8 00
@@ -528,10 +529,7 @@ mov_eax_imm32 00 00 00 08
 syscall
 
 # allocate file size aligned to page size
-add_r13d_imm32 00 00 0f ff
-and_r13d_imm32 ff ff f0 00
 mov_esi_r13d
-
 call_imm32 ff ff ff 4b # >allocate
 
 mov_r14_rax  # file content memory 
@@ -548,9 +546,33 @@ mov_rdi_r12
 mov_eax_imm32 00 00 00 03
 syscall
 
-# tokenize 
+# enum TokenKind(u32) {
+#   ident       = 0,
+#   number      = 1,
+#
+#   DB_colon    = 20,
+#   Lparen      = 21,
+#   Rparen      = 22,
+#   Lbrace      = 23,
+#   Rbrace      = 24,
+#   Lbracket    = 25,
+#   Rbracket    = 26,
+#
+#   KW_struct   = 40,
+#   KW_if       = 41,
+#   KW_while    = 41,
+#   WK_return   = 42,
+#
+#   Type_s64    = 60
+# };
+#
+# struct Token (u64) {
+#   TokenKind kind;
+#   u32 beg;
+# };
+#
 
-
+call_imm32 00 00 00 00 # >array_push
 
 # print file
 mov_edi_imm32 00 00 00 01

@@ -1,4 +1,4 @@
-Exemplus :: plex {
+Exemplus :: struct{
     buf: [5]s64,
     ret: s64,
     G: *Exemplus,
