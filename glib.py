@@ -265,6 +265,9 @@ def main():
             for i in range(1, len(sys.argv)):
                 sum += get_bytes_from_func(sys.argv[1], source)
             print(f"bytes: {sum} | {sum:02X}")
+        case "-t" | "--two-complement":
+            assert len(sys.argv) > 1, "error [glib]: need number for two's compliment"
+            print(get_twos_compliment(int(sys.argv[1])))
         case _:
             print("error [glib]: unknown flag provided")
     f.close()

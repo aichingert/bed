@@ -58,16 +58,49 @@ neg_rdi () {
     write_bits_8 11011111
 }
 
+shr_rax_imm8 () {
+    write_u8 48
+    write_u8 c1
+    write_bits_8 11101000
+    write_u8 $1
+}
+
+shr_rcx_imm8 () {
+    write_u8 48
+    write_u8 c1
+    write_bits_8 11101001
+    write_u8 $1
+}
+
 shl_rsi_once () {
     write_u8 48
     write_u8 d1
     write_bits_8 11100110
 }
 
+add_ebx_imm8 () {
+    write_u8 83
+    write_bits_8 11000011
+    write_u8 $1
+}
+
 add_rsi_imm32 () {
     write_u8 48
     write_u8 81
     write_bits_8 11000110
+    write_u32 $1 $2 $3 $4
+}
+
+and_rax_imm32 () {
+    write_u8 48
+    write_u8 25
+    write_u32 $1 $2 $3 $4
+}
+
+and_rcx_imm32 () {
+    write_u8 48
+    write_u8 81
+    write_bits_8 11100001
     write_u32 $1 $2 $3 $4
 }
 
@@ -110,6 +143,12 @@ mov_rsi_rax () {
     write_bits_8 11110000
 }
 
+mov_rsi_r12 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11100110
+}
+
 mov_rsi_r14 () {
     write_u8 49
     write_u8 8b
@@ -119,6 +158,11 @@ mov_rsi_r14 () {
 xor_edx_edx () {
     write_u8 33
     write_bits_8 11010010
+}
+
+xor_ebx_ebx() {
+    write_u8 33
+    write_bits_8 11011011
 }
 
 xor_eax_eax () {
@@ -171,6 +215,11 @@ mov_edx_imm32 () {
     write_u32       $1 $2 $3 $4
 }
 
+mov_edi_eax () {
+    write_u8 8b
+    write_bits_8 11111000
+}
+
 mov_edi_imm32 () {
     write_bits_8    10111111
     write_u32       $1 $2 $3 $4
@@ -200,10 +249,28 @@ mov_rdi_r12 () {
     write_bits_8 11111100
 }
 
+mov_rdi_r14 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11111110
+}
+
 mov_rdi_r13 () {
     write_u8 49
     write_u8 8b
     write_bits_8 11111101
+}
+
+mov_rax_ea_r14 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 00000110
+}
+
+mov_rdi_ea_r14 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 00111110
 }
 
 mov_rax_ea_rcx_disp32 () {
@@ -255,7 +322,23 @@ mov_rax_rsp () {
     write_bits_8 11100000
 }
 
-movzx_edi_ea_rcx_b_rax () {
+movzx_eax_ea_r12_base_rbx () {
+    write_u8 41
+    write_u8 0f
+    write_u8 b6
+    write_bits_8 00000100
+    write_bits_8 00011100
+}
+
+movzx_esi_ea_r12_base_rbx () {
+    write_u8 41
+    write_u8 0f
+    write_u8 b6
+    write_bits_8 00110100
+    write_bits_8 00011100
+}
+
+movzx_edi_ea_rcx_base_rax () {
     write_u8 48
     write_u8 0f
     write_u8 b6
@@ -300,6 +383,24 @@ cmp_rdi_imm8 () {
     write_u8 $1
 }
 
+cmp_eax_imm8 () {
+    write_u8 83
+    write_bits_8 11111000
+    write_u8 $1
+}
+
+cmp_ebx_imm8 () {
+    write_u8 83
+    write_bits_8 11111011
+    write_u8 $1
+}
+
+cmp_ebx_r13d () {
+    write_u8 41
+    write_u8 3b
+    write_bits_8 11011101
+}
+
 cmp_rdi_rsi () {
     write_u8 48
     write_u8 39
@@ -317,6 +418,13 @@ lea_rax_rcx () {
     write_u8 48
     write_u8 8d
     write_bits_8 00000001
+}
+
+lea_rsi_r12_base_rbx () {
+    write_u8 49
+    write_u8 8d
+    write_bits_8 00110100
+    write_bits_8 00011100
 }
 
 jcc_s_imm8 () {
@@ -382,6 +490,11 @@ inc_rdx () {
     write_bits_8 11000010
 }
 
+inc_ebx () {
+    write_u8 ff
+    write_bits_8 11000011
+}
+
 ret () {
     write_u8 c3
 }
@@ -445,7 +558,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 3f # >entry
+jmp_imm32 00 00 00 2f # >entry
 
 # helper functions
 
@@ -466,24 +579,6 @@ mov_r8d_imm32 ff ff ff ff
 mov_r9d_imm32 00 00 00 00
 mov_eax_imm32 00 00 00 09
 syscall
-ret
-
-# .array_push
-# args: 
-#   rax | array_cap
-#   rdi | array_len
-#   rsi | array_ptr
-#   r10 | item_len
-cmp_rdi_rsi
-jcc_l_imm8 00
-# grow branch
-# handle 0 case stupid but reduce branch 
-# and should never grow too big anyway
-add_rsi_imm32 00 00 10 00
-shl_rsi_once
-
-# push branch
-
 ret
 
 # .entry
@@ -511,7 +606,7 @@ mov_edi_imm32 00 00 00 02
 mov_eax_imm32 00 00 00 3c
 syscall
 
-mov_r12_rax # fd
+mov_r14_rax # fd
 
 # get file size
 mov_rdi_rax
@@ -522,7 +617,7 @@ syscall
 
 mov_r13_rax # file_size
 
-mov_rdi_r12
+mov_rdi_r14
 xor_esi_esi
 xor_edx_edx
 mov_eax_imm32 00 00 00 08
@@ -530,19 +625,18 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff ff 4b # >allocate
-
-mov_r14_rax  # file content memory 
+call_imm32 ff ff ff 5b  # >allocate
+mov_r12_rax             # r12       file ptr
 
 # read file
-mov_rdi_r12
+mov_rdi_r14
 mov_rsi_rax
 mov_rdx_r13
 xor_eax_eax
 syscall
 
 # close file
-mov_rdi_r12
+mov_rdi_r14
 mov_eax_imm32 00 00 00 03
 syscall
 
@@ -572,14 +666,31 @@ syscall
 # };
 #
 
-call_imm32 00 00 00 00 # >array_push
+xor_ebx_ebx
+cmp_ebx_r13d
+jcc_gq_imm8 00
 
-# print file
+movzx_eax_ea_r12_base_rbx
+
+cmp_eax_imm8 3a
+jcc_nq_imm8 1A
+
 mov_edi_imm32 00 00 00 01
-mov_rsi_r14
-mov_rdx_r13
+lea_rsi_r12_base_rbx
+mov_edx_imm32 00 00 00 01
 mov_eax_imm32 00 00 00 01
 syscall
+
+inc_ebx
+cmp_ebx_r13d
+jcc_l_imm8 d4
+
+# print file
+#'mov_edi_imm32 00 00 00 01
+#'mov_rsi_r12
+#'mov_rdx_r13
+#'mov_eax_imm32 00 00 00 01
+#'syscall
 
 mov_rdi_rax
 mov_eax_imm32 00 00 00 3c
