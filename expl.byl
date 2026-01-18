@@ -20,16 +20,13 @@ idiv (a: s64, b: s64) s64 {
     return a / b;
 }
 
-nop () {
-}
-
 entry (argc: s64, argv: **s64) s64 {
     name: *s64 = 0;
-    base: s64 : 12;
-    offset: s64 : -1;
+    base: s64 = 12;
+    offset: s64 = -1;
 
     mem : [5]s64 = [1,2,3,4,5];
-    init : Exemplus {
+    init : Exemplus = {
         .buf = mem,
         .ret = base,
     };

@@ -11,7 +11,7 @@
 set -e
 
 FILE="byl"
-EXPL="func.byl"
+EXPL="expl.byl"
 INST="$(date +%s)"
 BUFF=$FILE
 SIZE=0
@@ -670,10 +670,11 @@ xor_ebx_ebx
 cmp_ebx_r13d
 jcc_gq_imm8 00
 
+# .loop1
 movzx_eax_ea_r12_base_rbx
 
-cmp_eax_imm8 3a
-jcc_nq_imm8 1A
+cmp_eax_imm8 65
+jcc_nq_imm8 15  # >loop1_c
 
 mov_edi_imm32 00 00 00 01
 lea_rsi_r12_base_rbx
@@ -681,16 +682,10 @@ mov_edx_imm32 00 00 00 01
 mov_eax_imm32 00 00 00 01
 syscall
 
+# .loop1_c
 inc_ebx
 cmp_ebx_r13d
-jcc_l_imm8 d4
-
-# print file
-#'mov_edi_imm32 00 00 00 01
-#'mov_rsi_r12
-#'mov_rdx_r13
-#'mov_eax_imm32 00 00 00 01
-#'syscall
+jcc_l_imm8 da   # >loop1
 
 mov_rdi_rax
 mov_eax_imm32 00 00 00 3c

@@ -167,7 +167,7 @@ def update_addresses(source):
         bts += get_bytes_from_func(iden, source)
         skip = 0
 
-        if iden == "call_imm32" or iden == "jmp_imm32":
+        if iden == "call_imm32" or iden == "jmp_imm32" or iden.startswith("jcc_"):
             arg = pos
             while pos < len(source) and source[pos] != '>':
                 pos += 1
@@ -179,8 +179,8 @@ def update_addresses(source):
             
             func = source[beg:pos]
 
-            if iden == "jmp_imm32":
-                que.append([bts, func, arg])
+            if iden == "jmp_imm32" or iden.startswith("jcc_"):
+                que.append([iden, bts, func, arg])
                 continue
             else:
                 assert func in lbl, "error [glib]: calling non existend function `" + func + "`"
@@ -203,10 +203,10 @@ def update_addresses(source):
         pos += 1
 
     for entry in que:
-        [ebytes, efunc, efile] = entry
-        assert efunc in lbl, "error [glib]: function not found"
+        [eiden, ebytes, elbl, efile] = entry
+        assert elbl in lbl, "error [glib]: label not found"
 
-        offset = lbl[efunc] - ebytes
+        offset = lbl[elbl] - ebytes
         newoff = ""
 
         if offset < 0:
@@ -217,6 +217,18 @@ def update_addresses(source):
                 bin_as_hex = "{:02x}".format(int(binstr[i * 8 : (i + 1) * 8], 2))
                 newoff += ' ' + bin_as_hex
         adr += 1
+
+        if eiden.endswith("imm8"):
+            newoff = newoff[9:]
+        elif eiden.endswith("imm16"):
+            newoff = newoff[6:]
+        elif eiden.endswith("imm32"):
+            newoff = newoff
+        elif eiden.endswith("imm64"):
+            assert False, "error [glib]: 64 bit jumps are not yet implemented"
+        else:
+            assert False, "error [glib]: unknown jump size {}".format(eiden)
+
         source = source[:efile] + newoff + source[efile + len(newoff):]
 
     return source, adr
