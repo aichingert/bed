@@ -4,12 +4,26 @@ def is_ident_start(char):
     return char.isalpha() or char == '_'
 
 found = {
-    "write_u8": 1,
     "write_bits_8": 1,
+    "write_u8": 1,
     "write_u16": 2,
     "write_u32": 4,
     "write_u64": 8,
 }
+
+def get_byte_size_from_str_end(s):
+    i = len(s) - 1
+    while i >= 0 and s[i].isdigit():
+        i -= 1
+    i += 1
+
+    match s[i:]:
+        case "8":   return 1
+        case "16":  return 2 
+        case "32":  return 4
+        case "64":  return 8
+        case _: return 0
+
 
 def get_bytes_from_func(fn, source):
     if fn in found:
@@ -29,37 +43,40 @@ def get_bytes_from_func(fn, source):
         while pos < len(source) and source[pos] == ' ':
             pos += 1
 
-        # have to do this since my neovim idents 
-        # wrong if i don't close the braces :/
+        # check if this is a function definition or a call
         if pos < len(source) and source[pos] != "()"[0]:
             continue
-
+        # advance until the function body starts
         while pos < len(source) and source[pos] != "{}"[0]:
             pos += 1
+        break
 
-        brc = 1
-        pos += 1
-        while pos < len(source) and brc > 0:
-            if source[pos] == "{}"[0]:
-                brc += 1
-            if source[pos] == "{}"[1]:
-                brc -= 1
+    brc = 1
+    pos += 1
+    while pos < len(source) and brc > 0:
+        if source[pos] == "{}"[0]:
+            brc += 1
+        if source[pos] == "{}"[1]:
+            brc -= 1
 
-            if is_ident_start(source[pos]):
-                beg = pos
-                while pos < len(source) and source[pos].isalnum() or source[pos] == '_':
+        if is_ident_start(source[pos]):
+            beg = pos
+            while pos < len(source) and source[pos].isalnum() or source[pos] == '_':
+                pos += 1
+            iden = source[beg:pos]
+
+            if iden == "write_zeroes":
+                while pos < len(source) and source[pos] == ' ':
                     pos += 1
-
-                if source[beg:pos] == "write_zeroes":
-                    while pos < len(source) and source[pos] == ' ':
-                        pos += 1
-                    num = 0
-                    while pos < len(source) and source[pos].isdigit():
-                        num *= 10 + int(source[pos])
-                        pos += 1
-                    bts += num
-                else:
-                    bts += get_bytes_from_func(source[beg:pos], source)
+                num = 0
+                while pos < len(source) and source[pos].isdigit():
+                    num *= 10 + int(source[pos])
+                    pos += 1
+                bts += num
+            else:
+                bts += get_bytes_from_func(iden, source)
+                pos += get_byte_size_from_str_end(iden) * 3
+        else:
             pos += 1
 
     found[fn] = bts
@@ -73,7 +90,7 @@ def get_label(lbl, offset, source):
         if source[pos] == '.':
             beg = pos
             pos += 1
-            while pos < len(source) and (source[pos].isalpha() or source[pos] == '_'):
+            while pos < len(source) and (source[pos].isalnum() or source[pos] == '_'):
                 pos += 1
             
             if lbl == source[beg:pos]:
@@ -150,10 +167,11 @@ def update_addresses(source):
                 if source[pos] == '.':
                     pos += 1
                     beg = pos
-                    while pos < len(source) and (source[pos].isalpha() or source[pos] == '_'):
+                    while pos < len(source) and (source[pos].isalnum() or source[pos] == '_'):
                         pos += 1
                     lbl[source[beg:pos]] = bts
-                pos += 1
+                else:
+                    pos += 1
 
         if not is_ident_start(source[pos]):
             pos += 1
@@ -169,42 +187,35 @@ def update_addresses(source):
 
         if iden == "call_imm32" or iden == "jmp_imm32" or iden.startswith("jcc_"):
             arg = pos
-            while pos < len(source) and source[pos] != '>':
+            while pos < len(source) and source[pos] != '>' and source[pos] != '\n':
                 pos += 1
+            if pos < len(source) and source[pos] == '\n':
+                pos += 1
+                continue
             pos += 1
 
             beg = pos
-            while pos < len(source) and (source[pos].isalpha() or source[pos] == '_'):
+            while pos < len(source) and (source[pos].isalnum() or source[pos] == '_'):
                 pos += 1
             
             func = source[beg:pos]
 
-            if iden == "jmp_imm32" or iden.startswith("jcc_"):
+            if iden == "call_imm32":
+                assert func in lbl, "error [glib]: calling non existend function `" + func + "`"
+            else:
                 que.append([iden, bts, func, arg])
                 continue
-            else:
-                assert func in lbl, "error [glib]: calling non existend function `" + func + "`"
 
             offset = bts - lbl[func]
             newoff = get_twos_compliment(offset)
             
             adr += 1
             source = source[:arg] + newoff + source[arg + len(newoff):]
-        elif iden.endswith("imm8"):
-            skip = 1
-        elif iden.endswith("imm16"):
-            skip = 2
-        elif iden.endswith("imm32"):
-            skip = 4
-        elif iden.endswith("imm64"):
-            skip = 8
-        for i in range(skip):
-            pos += 3
         pos += 1
 
     for entry in que:
         [eiden, ebytes, elbl, efile] = entry
-        assert elbl in lbl, "error [glib]: label not found"
+        assert elbl in lbl, "error [glib]: label `{}` not found".format(elbl)
 
         offset = lbl[elbl] - ebytes
         newoff = ""
@@ -258,8 +269,9 @@ def main():
             sum = get_bytes_in_range(src_start, dst_start, source)
             print(f"bytes: {sum} | {sum:02X}")
         case "-b" | "--bytes":
-            assert len(sys.argv) > 1, "error [glib]: bytes expects mnemonic to search"
-            sum = get_bytes_from_func(sys.argv[1], source)
+            sum = 0
+            for i in range(1, len(sys.argv)):
+                sum += get_bytes_from_func(sys.argv[i], source)
             print(f"bytes: {sum} | {sum:02X}")
         case "-c" | "--fix-calls":
             source, adr = update_addresses(source)
@@ -272,11 +284,6 @@ def main():
 
             f.write(source)
             f.truncate()
-        case "-m" | "--multi":
-            sum = 0
-            for i in range(1, len(sys.argv)):
-                sum += get_bytes_from_func(sys.argv[1], source)
-            print(f"bytes: {sum} | {sum:02X}")
         case "-t" | "--two-complement":
             assert len(sys.argv) > 1, "error [glib]: need number for two's compliment"
             print(get_twos_compliment(int(sys.argv[1])))
