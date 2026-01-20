@@ -52,6 +52,68 @@ write_u64 () {
     write_u32 $1 $2 $3 $4
 }
 
+push_rax () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11110000
+}
+push_rcx () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11110001
+}
+push_rdx () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11110010
+}
+push_rbx () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11110011
+}
+push_rsi () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11110110
+}
+push_rdi () {
+    write_u8 48
+    write_u8 ff
+    write_bits_8 11110111
+}
+
+pop_rax () {
+    write_u8 48
+    write_u8 8f
+    write_bits_8 11000000
+}
+pop_rcx () {
+    write_u8 48
+    write_u8 8f
+    write_bits_8 11000001
+}
+pop_rdx () {
+    write_u8 48
+    write_u8 8f
+    write_bits_8 11000010
+}
+pop_rbx () {
+    write_u8 48
+    write_u8 8f
+    write_bits_8 11000011
+}
+pop_rsi () {
+    write_u8 48
+    write_u8 8f
+    write_bits_8 11000110
+}
+pop_rdi () {
+    write_u8 48
+    write_u8 8f
+    write_bits_8 11000111
+}
+
 neg_rdi () {
     write_u8 48
     write_u8 f7
@@ -76,6 +138,12 @@ shl_rsi_once () {
     write_u8 48
     write_u8 d1
     write_bits_8 11100110
+}
+
+shl_r15_once () {
+    write_u8 49
+    write_u8 d1
+    write_bits_8 11100111
 }
 
 add_ebx_imm8 () {
@@ -115,6 +183,13 @@ add_r13d_imm32 () {
     write_u8 41
     write_u8 81
     write_bits_8 11000101
+    write_u32 $1 $2 $3 $4
+}
+
+add_r15_imm32 () {
+    write_u8 49
+    write_u8 81
+    write_bits_8 11000111
     write_u32 $1 $2 $3 $4
 }
 
@@ -407,6 +482,12 @@ cmp_rdi_rsi () {
     write_bits_8 11110111
 }
 
+cmp_rdx_r15 () {
+    write_u8 49
+    write_u8 3b
+    write_bits_8 11010111
+}
+
 cmp_rax_imm8 () {
     write_u8 48
     write_u8 83
@@ -558,7 +639,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 2f # >entry
+jmp_imm32 00 00 00 4d # >entry
 
 # helper functions
 
@@ -580,6 +661,30 @@ mov_r9d_imm32 00 00 00 00
 mov_eax_imm32 00 00 00 09
 syscall
 ret
+
+# .push_token
+# args:
+#   rdi | token kind
+#   rcx | offset from file begin
+#   r14 | token ptr
+#   rdx | token len
+#   r15 | token cap
+
+inc_rdx
+cmp_rdx_r15
+jcc_gq_imm8 0a # >skip_grow
+
+add_r15_imm32 00 00 10 00
+shl_r15_once
+
+# .skip_grow
+
+push_rdi
+push_rcx
+pop_rcx
+pop_rdi
+
+# ======= MAIN ========
 
 # .entry
 # args:
@@ -625,7 +730,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff ff 5b  # >allocate
+call_imm32 ff ff ff 3d  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -686,6 +791,9 @@ syscall
 inc_ebx
 cmp_ebx_r13d
 jcc_l_imm8 da   # >loop1
+
+push_rax
+pop_rax
 
 mov_rdi_rax
 mov_eax_imm32 00 00 00 3c
