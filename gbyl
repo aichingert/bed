@@ -126,11 +126,16 @@ shr_rax_imm8 () {
     write_bits_8 11101000
     write_u8 $1
 }
-
 shr_rcx_imm8 () {
     write_u8 48
     write_u8 c1
     write_bits_8 11101001
+    write_u8 $1
+}
+shr_r15_imm8 () {
+    write_u8 49
+    write_u8 c1
+    write_bits_8 11101111
     write_u8 $1
 }
 
@@ -144,6 +149,13 @@ shl_r15_once () {
     write_u8 49
     write_u8 d1
     write_bits_8 11100111
+}
+
+shl_r15_imm8 () {
+    write_u8 49
+    write_u8 c1
+    write_bits_8 11100111
+    write_u8 $1
 }
 
 add_ebx_imm8 () {
@@ -230,29 +242,36 @@ mov_rsi_r14 () {
     write_bits_8 11110110
 }
 
+mov_rsi_r15 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11110111
+}
+
 xor_edx_edx () {
     write_u8 33
     write_bits_8 11010010
 }
-
 xor_ebx_ebx() {
     write_u8 33
     write_bits_8 11011011
 }
-
 xor_eax_eax () {
     write_u8 33
     write_bits_8 11000000
 }
-
 xor_edi_edi () {
     write_u8 33
     write_bits_8 11111111
 }
-
 xor_esi_esi () {
     write_u8 33
     write_bits_8 11110110
+}
+xor_r15d_r15d () {
+    write_u8 45
+    write_u8 33
+    write_bits_8 11111111
 }
 
 mov_r8d_imm32 () {
@@ -317,23 +336,30 @@ mov_r14_rax () {
     write_u8 8b
     write_bits_8 11110000
 }
-
+mov_rdi_rdx () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11111010
+}
 mov_rdi_r12 () {
     write_u8 49
     write_u8 8b
     write_bits_8 11111100
 }
-
+mov_rdi_r13 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11111101
+}
 mov_rdi_r14 () {
     write_u8 49
     write_u8 8b
     write_bits_8 11111110
 }
-
-mov_rdi_r13 () {
+mov_rdi_r15 () {
     write_u8 49
     write_u8 8b
-    write_bits_8 11111101
+    write_bits_8 11111111
 }
 
 mov_rax_ea_r14 () {
@@ -639,7 +665,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 4d # >entry
+jmp_imm32 00 00 00 5b # >entry
 
 # helper functions
 
@@ -672,17 +698,26 @@ ret
 
 inc_rdx
 cmp_rdx_r15
-jcc_gq_imm8 0a # >skip_grow
+jcc_l_imm8 23 # >skip_grow
+
+push_rdi
+push_rdx
 
 add_r15_imm32 00 00 10 00
-shl_r15_once
+shl_r15_imm8 03
+
+mov_rsi_r15
+call_imm32 ff ff ff b0 # >allocate
+shr_r15_imm8 03
+
+# TODO: copy old tokens on resize
+
+pop_rdx
+pop_rdi
 
 # .skip_grow
 
-push_rdi
-push_rcx
-pop_rcx
-pop_rdi
+ret
 
 # ======= MAIN ========
 
@@ -730,7 +765,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff ff 3d  # >allocate
+call_imm32 ff ff ff 2f  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -771,6 +806,9 @@ syscall
 # };
 #
 
+xor_edx_edx
+xor_r15d_r15d
+
 xor_ebx_ebx
 cmp_ebx_r13d
 jcc_gq_imm8 00
@@ -788,14 +826,15 @@ mov_eax_imm32 00 00 00 01
 syscall
 
 # .loop1_c
+
+call_imm32 ff ff ff 14 # >push_token
+
 inc_ebx
 cmp_ebx_r13d
-jcc_l_imm8 da   # >loop1
+jcc_l_imm8 d5   # >loop1
 
-push_rax
-pop_rax
 
-mov_rdi_rax
+mov_rdi_rdx
 mov_eax_imm32 00 00 00 3c
 syscall
 
