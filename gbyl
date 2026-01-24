@@ -82,6 +82,11 @@ push_rdi () {
     write_u8 ff
     write_bits_8 11110111
 }
+push_r15 () {
+    write_u8 49
+    write_u8 ff
+    write_bits_8 11110111
+}
 
 pop_rax () {
     write_u8 48
@@ -113,6 +118,11 @@ pop_rdi () {
     write_u8 8f
     write_bits_8 11000111
 }
+pop_r15 () {
+    write_u8 49
+    write_u8 8f
+    write_bits_8 11000111
+}
 
 neg_rdi () {
     write_u8 48
@@ -132,6 +142,13 @@ shr_rcx_imm8 () {
     write_bits_8 11101001
     write_u8 $1
 }
+shr_rsi_imm8 () {
+    write_u8 48
+    write_u8 c1
+    write_bits_8 11101110
+    write_u8 $1
+}
+
 shr_r15_imm8 () {
     write_u8 49
     write_u8 c1
@@ -246,6 +263,12 @@ mov_rsi_r15 () {
     write_u8 49
     write_u8 8b
     write_bits_8 11110111
+}
+
+mov_r15_rsi () {
+    write_u8 44
+    write_u8 8b
+    write_bits_8 11111110
 }
 
 xor_edx_edx () {
@@ -597,6 +620,12 @@ inc_rdx () {
     write_bits_8 11000010
 }
 
+inc_r15 () {
+    write_u8 49
+    write_u8 ff
+    write_bits_8 11000111
+}
+
 inc_ebx () {
     write_u8 ff
     write_bits_8 11000011
@@ -665,7 +694,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 5b # >entry
+jmp_imm32 00 00 00 30 # >entry
 
 # helper functions
 
@@ -688,35 +717,8 @@ mov_eax_imm32 00 00 00 09
 syscall
 ret
 
-# .push_token
+# .next_token
 # args:
-#   rdi | token kind
-#   rcx | offset from file begin
-#   r14 | token ptr
-#   rdx | token len
-#   r15 | token cap
-
-inc_rdx
-cmp_rdx_r15
-jcc_l_imm8 23 # >skip_grow
-
-push_rdi
-push_rdx
-
-add_r15_imm32 00 00 10 00
-shl_r15_imm8 03
-
-mov_rsi_r15
-call_imm32 ff ff ff b0 # >allocate
-shr_r15_imm8 03
-
-# TODO: copy old tokens on resize
-
-pop_rdx
-pop_rdi
-
-# .skip_grow
-
 ret
 
 # ======= MAIN ========
@@ -765,7 +767,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff ff 2f  # >allocate
+call_imm32 ff ff ff 5a  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -807,9 +809,9 @@ syscall
 #
 
 xor_edx_edx
+xor_ebx_ebx
 xor_r15d_r15d
 
-xor_ebx_ebx
 cmp_ebx_r13d
 jcc_gq_imm8 00
 
@@ -817,22 +819,21 @@ jcc_gq_imm8 00
 movzx_eax_ea_r12_base_rbx
 
 cmp_eax_imm8 65
-jcc_nq_imm8 15  # >loop1_c
+jcc_nq_imm8 00  # >loop1_c
 
-mov_edi_imm32 00 00 00 01
-lea_rsi_r12_base_rbx
-mov_edx_imm32 00 00 00 01
-mov_eax_imm32 00 00 00 01
-syscall
+#mov_edi_imm32 00 00 00 01
+#lea_rsi_r12_base_rbx
+#mov_edx_imm32 00 00 00 01
+#mov_eax_imm32 00 00 00 01
+#syscall
 
 # .loop1_c
 
-call_imm32 ff ff ff 14 # >push_token
+call_imm32 ff ff ff 54 # >next_token
 
 inc_ebx
 cmp_ebx_r13d
-jcc_l_imm8 d5   # >loop1
-
+jcc_l_imm8 ea   # >loop1
 
 mov_rdi_rdx
 mov_eax_imm32 00 00 00 3c
