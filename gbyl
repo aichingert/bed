@@ -719,6 +719,7 @@ ret
 
 # .next_token
 # args:
+#   
 ret
 
 # ======= MAIN ========
@@ -808,32 +809,12 @@ syscall
 # };
 #
 
-xor_edx_edx
-xor_ebx_ebx
-xor_r15d_r15d
+# line_counter  | reg
+# file_pos      | reg
 
-cmp_ebx_r13d
-jcc_gq_imm8 00
 
-# .loop1
-movzx_eax_ea_r12_base_rbx
-
-cmp_eax_imm8 65
-jcc_nq_imm8 00  # >loop1_c
-
-#mov_edi_imm32 00 00 00 01
-#lea_rsi_r12_base_rbx
-#mov_edx_imm32 00 00 00 01
-#mov_eax_imm32 00 00 00 01
-#syscall
-
-# .loop1_c
-
-call_imm32 ff ff ff 54 # >next_token
-
-inc_ebx
-cmp_ebx_r13d
-jcc_l_imm8 ea   # >loop1
+# TODO: parse using an 
+# one look ahead language
 
 mov_rdi_rdx
 mov_eax_imm32 00 00 00 3c
