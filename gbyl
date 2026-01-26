@@ -500,6 +500,11 @@ mov_rcx_ea_rsp_disp8 () {
     write_u8 $1
 }
 
+cmp_edi_imm8 () {
+    write_u8 83
+    write_bits_8 11111111
+    write_u8 $1
+}
 cmp_rdi_imm8 () {
     write_u8 48
     write_u8 83
@@ -568,7 +573,7 @@ jcc_ns_imm8 () {
 }
 
 jcc_g_imm8 () {
-    write_u8 77
+    write_u8 7f
     write_u8 $1
 }
 
@@ -602,12 +607,15 @@ jmp_imm32 () {
     write_u32 $1 $2 $3 $4
 }
 
+inc_eax () {
+    write_u8 ff
+    write_bits_8 11000000
+}
 inc_rax () {
     write_u8 48
     write_u8 ff
     write_bits_8 11000000
 }
-
 inc_rcx () {
     write_u8 48
     write_u8 ff
@@ -694,7 +702,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 30 # >entry
+jmp_imm32 00 00 00 5d # >entry
 
 # helper functions
 
@@ -717,9 +725,51 @@ mov_eax_imm32 00 00 00 09
 syscall
 ret
 
+# .is_ident
+# args:
+#   rdi | char
+xor_eax_eax
+
+# if chr is upper case roman literal
+cmp_edi_imm8 41 # 'A'
+jcc_l_imm8 11 # >is_ident_ret
+cmp_edi_imm8 5a # 'Z'
+jcc_lq_imm8 0a # >is_ident_true
+
+# if chr is lower case roman literal
+cmp_edi_imm8 61 # 'a'
+jcc_l_imm8 07 # >is_ident_ret
+cmp_edi_imm8 7a # 'z'
+jcc_g_imm8 02 # >is_ident_ret
+
+# .is_ident_true
+inc_eax
+
+# .is_ident_ret
+ret
+
+# .is_ident_start
+# args:
+#   rdi | char
+xor_eax_eax
+
+# if chr is underscore 
+cmp_edi_imm8 5f # '_'
+jcc_q_imm8 0a # >is_ident_start_true
+
+call_imm32 ff ff ff db # >is_ident
+cmp_eax_imm8 01
+jcc_nq_imm8 02 # >is_ident_start_ret
+
+# .is_ident_start_true
+inc_eax
+
+# .is_ident_start_ret
+ret
+
 # .next_token
 # args:
-#   
+
 ret
 
 # ======= MAIN ========
@@ -768,7 +818,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff ff 5a  # >allocate
+call_imm32 ff ff ff 2d  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -811,7 +861,6 @@ syscall
 
 # line_counter  | reg
 # file_pos      | reg
-
 
 # TODO: parse using an 
 # one look ahead language
