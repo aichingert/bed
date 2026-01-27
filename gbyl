@@ -291,6 +291,11 @@ xor_esi_esi () {
     write_u8 33
     write_bits_8 11110110
 }
+xor_r14d_r14d () {
+    write_u8 45
+    write_u8 33
+    write_bits_8 11110110
+}
 xor_r15d_r15d () {
     write_u8 45
     write_u8 33
@@ -470,6 +475,14 @@ movzx_edi_ea_rcx_base_rax () {
     write_bits_8 00000001
 }
 
+movzx_edi_ea_r12_base_r14 () {
+    write_u8 43
+    write_u8 0f
+    write_u8 b6
+    write_bits_8 00111100
+    write_bits_8 00110100
+}
+
 mov_rdi_ea_rcx () {
     write_u8 48
     write_u8 8b
@@ -621,13 +634,16 @@ inc_rcx () {
     write_u8 ff
     write_bits_8 11000001
 }
-
 inc_rdx () {
     write_u8 48
     write_u8 ff
     write_bits_8 11000010
 }
-
+inc_r14 () {
+    write_u8 49
+    write_u8 ff
+    write_bits_8 11000110
+}
 inc_r15 () {
     write_u8 49
     write_u8 ff
@@ -702,7 +718,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 5d # >entry
+jmp_imm32 00 00 00 83 # >entry
 
 # helper functions
 
@@ -725,50 +741,72 @@ mov_eax_imm32 00 00 00 09
 syscall
 ret
 
-# .is_ident
-# args:
-#   rdi | char
-xor_eax_eax
-
-# if chr is upper case roman literal
-cmp_edi_imm8 41 # 'A'
-jcc_l_imm8 11 # >is_ident_ret
-cmp_edi_imm8 5a # 'Z'
-jcc_lq_imm8 0a # >is_ident_true
-
-# if chr is lower case roman literal
-cmp_edi_imm8 61 # 'a'
-jcc_l_imm8 07 # >is_ident_ret
-cmp_edi_imm8 7a # 'z'
-jcc_g_imm8 02 # >is_ident_ret
-
-# .is_ident_true
-inc_eax
-
-# .is_ident_ret
-ret
+# TODO: use conditional moves instead of branches for ident detection
 
 # .is_ident_start
 # args:
 #   rdi | char
+# return:
+#   rax | bool
 xor_eax_eax
-
 # if chr is underscore 
 cmp_edi_imm8 5f # '_'
-jcc_q_imm8 0a # >is_ident_start_true
-
-call_imm32 ff ff ff db # >is_ident
-cmp_eax_imm8 01
-jcc_nq_imm8 02 # >is_ident_start_ret
-
+jcc_q_imm8 14 # >is_ident_start_true
+# if chr is upper case roman literal
+cmp_edi_imm8 41 # 'A'
+jcc_l_imm8 11 # >is_ident_start_ret
+cmp_edi_imm8 5a # 'Z'
+jcc_lq_imm8 0a # >is_ident_start_true
+# if chr is lower case roman literal
+cmp_edi_imm8 61 # 'a'
+jcc_l_imm8 07 # >is_ident_start_ret
+cmp_edi_imm8 7a # 'z'
+jcc_g_imm8 02 # >is_ident_start_ret
 # .is_ident_start_true
 inc_eax
-
 # .is_ident_start_ret
+ret
+
+# .is_ident
+# args:
+#   rdi | char
+# return:
+#   rax | bool
+xor_eax_eax
+call_imm32 ff ff ff db  # >is_ident_start
+cmp_eax_imm8 01
+jcc_q_imm8 0c           # >is_ident_ret
+
+# if chr is a number
+cmp_edi_imm8 30
+jcc_l_imm8 07           # >is_ident_ret
+cmp_edi_imm8 39 
+jcc_g_imm8 02           # >is_ident_ret
+
+# .is_ident_true
+inc_eax
+# .is_ident_ret
 ret
 
 # .next_token
 # args:
+#   r12     | file
+#   r13     | size
+#   r14     | pos
+#   r15     | line
+# modify: rax, rdi
+
+movzx_edi_ea_r12_base_r14
+call_imm32 ff ff ff bf  # >is_ident_start
+cmp_eax_imm8 01
+jcc_nq_imm8 0d          # >next_token_iterate_ident_end
+
+# .next_token_iterate_ident
+inc_r14
+call_imm32 ff ff ff d0  # >is_ident
+cmp_eax_imm8 01
+jcc_nq_imm8 f3          # >next_token_iterate_ident
+# .next_token_iterate_ident_end
 
 ret
 
@@ -818,7 +856,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff ff 2d  # >allocate
+call_imm32 ff ff ff 07  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -859,13 +897,11 @@ syscall
 # };
 #
 
-# line_counter  | reg
-# file_pos      | reg
+xor_r14d_r14d
+xor_r15d_r15d
+call_imm32 ff ff ff 48      # >next_token
 
-# TODO: parse using an 
-# one look ahead language
-
-mov_rdi_rdx
+mov_rdi_r14
 mov_eax_imm32 00 00 00 3c
 syscall
 
