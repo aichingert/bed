@@ -341,7 +341,16 @@ mov_edi_eax () {
     write_u8 8b
     write_bits_8 11111000
 }
-
+mov_edi_r14d () {
+    write_u8 41
+    write_u8 8b
+    write_bits_8 11111110
+}
+mov_edi_r15d () {
+    write_u8 41
+    write_u8 8b
+    write_bits_8 11111111
+}
 mov_edi_imm32 () {
     write_bits_8    10111111
     write_u32       $1 $2 $3 $4
@@ -414,6 +423,10 @@ mov_eax_imm32 () {
     write_bits_8    10111000
     write_u32       $1 $2 $3 $4
 }
+mov_esi_imm32 () {
+    write_bits_8    10111110
+    write_u32       $1 $2 $3 $4
+}
 
 mov_rdi_rax () {
     write_u8 48
@@ -458,7 +471,6 @@ movzx_eax_ea_r12_base_rbx () {
     write_bits_8 00000100
     write_bits_8 00011100
 }
-
 movzx_esi_ea_r12_base_rbx () {
     write_u8 41
     write_u8 0f
@@ -466,7 +478,6 @@ movzx_esi_ea_r12_base_rbx () {
     write_bits_8 00110100
     write_bits_8 00011100
 }
-
 movzx_edi_ea_rcx_base_rax () {
     write_u8 48
     write_u8 0f
@@ -474,7 +485,6 @@ movzx_edi_ea_rcx_base_rax () {
     write_bits_8 00111100
     write_bits_8 00000001
 }
-
 movzx_edi_ea_r12_base_r14 () {
     write_u8 43
     write_u8 0f
@@ -496,7 +506,6 @@ mov_rdi_ea_rsp_disp8 () {
     write_bits_8 01100100
     write_u8 $1
 }
-
 mov_rax_ea_rsp_disp8 () {
     write_u8 48
     write_u8 8b
@@ -504,13 +513,29 @@ mov_rax_ea_rsp_disp8 () {
     write_bits_8 01100100
     write_u8 $1
 }
-
 mov_rcx_ea_rsp_disp8 () {
     write_u8 48
     write_u8 8b
     write_bits_8 01001100
     write_bits_8 01100100
     write_u8 $1
+}
+
+cmovq_eax_esi () {
+    write_u8 0f
+    write_u8 44
+    write_bits_8 11000110
+}
+cmovq_eax_edi () {
+    write_u8 0f
+    write_u8 44
+    write_bits_8 11000111
+}
+cmovq_r15d_esi () {
+    write_u8 44
+    write_u8 0f
+    write_u8 44
+    write_bits_8 11111110
 }
 
 cmp_edi_imm8 () {
@@ -524,37 +549,39 @@ cmp_rdi_imm8 () {
     write_bits_8 11111111
     write_u8 $1
 }
-
 cmp_eax_imm8 () {
     write_u8 83
     write_bits_8 11111000
     write_u8 $1
 }
-
 cmp_ebx_imm8 () {
     write_u8 83
     write_bits_8 11111011
     write_u8 $1
 }
-
+cmp_eax_edi () {
+    write_u8 3b
+    write_bits_8 11000111
+}
+cmp_eax_esi () {
+    write_u8 3b
+    write_bits_8 11000110
+}
 cmp_ebx_r13d () {
     write_u8 41
     write_u8 3b
     write_bits_8 11011101
 }
-
 cmp_rdi_rsi () {
     write_u8 48
     write_u8 39
     write_bits_8 11110111
 }
-
 cmp_rdx_r15 () {
     write_u8 49
     write_u8 3b
     write_bits_8 11010111
 }
-
 cmp_rax_imm8 () {
     write_u8 48
     write_u8 83
@@ -567,7 +594,18 @@ lea_rax_rcx () {
     write_u8 8d
     write_bits_8 00000001
 }
-
+lea_rsi_r14_disp8 () {
+    write_u8 49
+    write_u8 8d
+    write_bits_8 01110110
+    write_u8 $1
+}
+lea_rsi_r15_disp8 () {
+    write_u8 49
+    write_u8 8d
+    write_bits_8 01110111
+    write_u8 $1
+}
 lea_rsi_r12_base_rbx () {
     write_u8 49
     write_u8 8d
@@ -579,42 +617,44 @@ jcc_s_imm8 () {
     write_u8 78
     write_u8 $1
 }
-
 jcc_ns_imm8 () {
     write_u8 79
     write_u8 $1
 }
-
 jcc_g_imm8 () {
     write_u8 7f
     write_u8 $1
 }
-
 jcc_gq_imm8 () {
     write_u8 73
     write_u8 $1
 }
-
 jcc_q_imm8 () {
     write_u8 74
     write_u8 $1
 }
-
+jcc_q_imm32 () {
+    write_u8 0f
+    write_u8 84
+    write_u32 $1 $2 $3 $4
+}
 jcc_nq_imm8 () {
     write_u8 75
     write_u8 $1
 }
-
 jcc_l_imm8 () {
     write_u8 72
     write_u8 $1
 }
-
 jcc_lq_imm8 () {
     write_u8 76
     write_u8 $1
 }
 
+jmp_imm8 () {
+    write_u8 eb
+    write_u8 $1
+}
 jmp_imm32 () {
     write_u8 e9
     write_u32 $1 $2 $3 $4
@@ -718,7 +758,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 83 # >entry
+jmp_imm32 00 00 00 b6 # >entry
 
 # helper functions
 
@@ -794,16 +834,45 @@ ret
 #   r13     | size
 #   r14     | pos
 #   r15     | line
-# modify: rax, rdi
+# modify: rax, rdi, rsi
 
+jmp_imm8 03
+
+# .next_token_skip_whitespace_newline_and_tabs_beg
+inc_r14
+
+# while ch == '\n' or ch == ' ' or ch == '\t' {
+#   if ch == '\n' {
+#       line += 1;
+#   }
+#   pos += 1;
+#   ch = arr[pos];
+# }
+
+lea_rsi_r15_disp8 01
+xor_eax_eax
 movzx_edi_ea_r12_base_r14
-call_imm32 ff ff ff bf  # >is_ident_start
+cmp_edi_imm8 0a
+cmovq_eax_esi
+cmovq_r15d_esi
+cmp_edi_imm8 20
+cmovq_eax_esi
+cmp_edi_imm8 09
+cmovq_eax_esi
+cmp_eax_esi
+jcc_q_imm32 ff ff ff d4           # >next_token_skip_whitespace_newline_and_tabs_beg
+
+mov_eax_imm32 00 00 00 3c
+mov_edi_r14d 
+syscall
+
+call_imm32 ff ff ff 8c  # >is_ident_start
 cmp_eax_imm8 01
 jcc_nq_imm8 0d          # >next_token_iterate_ident_end
 
 # .next_token_iterate_ident
 inc_r14
-call_imm32 ff ff ff d0  # >is_ident
+call_imm32 ff ff ff 9d  # >is_ident
 cmp_eax_imm8 01
 jcc_nq_imm8 f3          # >next_token_iterate_ident
 # .next_token_iterate_ident_end
@@ -856,7 +925,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff ff 07  # >allocate
+call_imm32 ff ff fe d4  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -871,7 +940,7 @@ mov_rdi_r14
 mov_eax_imm32 00 00 00 03
 syscall
 
-# enum TokenKind(u32) {
+# enum TokenKind [u32] {
 #   ident       = 0,
 #   number      = 1,
 #
@@ -891,7 +960,7 @@ syscall
 #   Type_s64    = 60
 # };
 #
-# struct Token (u64) {
+# struct Token [u64] {
 #   TokenKind kind;
 #   u32 beg;
 # };
@@ -899,7 +968,8 @@ syscall
 
 xor_r14d_r14d
 xor_r15d_r15d
-call_imm32 ff ff ff 48      # >next_token
+
+call_imm32 ff ff ff 15      # >next_token
 
 mov_rdi_r14
 mov_eax_imm32 00 00 00 3c

@@ -124,25 +124,25 @@ def get_bytes_in_range(src, dst, source):
     return sum_of_bytes
 
 def get_twos_compliment(number):
-    binary = "{:08b}".format(number)
-    binarr = [1] * 32
+    binary = "{:032b}".format(number)
+    binarr = [0] * 32
+    assert len(binary) == 32, "error [glib]: 2's compliment impl only supports 32 bit"
 
     # one's complement
     for i in range(len(binary)):
-        binarr[len(binarr) - 8 + i] = 1 - int(binary[i])
-    
-    # two's complement
-    binarr[len(binarr) - 1] += 1
+        binarr[len(binarr) - i - 1] = 1 - int(binary[i])
 
-    for i in range(len(binarr) - 1, -1, -1):
+    # two's complement
+    binarr[0] += 1
+
+    for i in range(len(binarr)):
         if binarr[i] < 2:
             break
         binarr[i] = 0
+        if i + 1 < len(binarr):
+            binarr[i + 1] += 1
 
-        if i > 0:
-            binarr[i - 1] += 1
-
-    binstr = "".join(str(x) for x in binarr)
+    binstr = "".join(str(x) for x in reversed(binarr))
     newnum = ""
 
     for i in range(4):
