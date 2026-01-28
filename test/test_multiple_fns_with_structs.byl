@@ -1,0 +1,43 @@
+   
+
+struct Dat {
+    *s8 a,
+    *s8 b,
+}
+
+struct Exemplus {
+    [5]s8       buf,
+    s8          ret,
+    *Exemplus   G,
+    Dat         d,
+}
+
+add (s64 a, s64 b s64) {
+    return a + b;
+}
+
+sub (s64 a, s64 b s64) s64 {
+    return a - b;
+}
+mul (s64 a, s64 b s64) s64 {
+    return a * b;
+}
+
+idiv (s64 a, s64 b s64) s64 {
+    return a / b;
+}
+
+entry (s32 argc, **s8 argv) s8 {
+    *s8 name = 0;
+    s8  base = 12;
+    s64 offset = -1;
+
+    [5]s8       mem     = [1,2,3,4,5];
+    Exemplus    init    = Exemplus {
+        buf = mem,
+        ret = base + mem[0],
+    };
+
+    return init.ret;
+}
+

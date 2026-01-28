@@ -11,7 +11,7 @@
 set -e
 
 FILE="byl"
-EXPL="expl.byl"
+EXPL="../test/test_only_entry_fn.byl"
 INST="$(date +%s)"
 BUFF=$FILE
 SIZE=0
@@ -758,7 +758,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 b6 # >entry
+jmp_imm32 00 00 00 ac # >entry
 
 # helper functions
 
@@ -862,17 +862,13 @@ cmovq_eax_esi
 cmp_eax_esi
 jcc_q_imm32 ff ff ff d4           # >next_token_skip_whitespace_newline_and_tabs_beg
 
-mov_eax_imm32 00 00 00 3c
-mov_edi_r14d 
-syscall
-
-call_imm32 ff ff ff 8c  # >is_ident_start
+call_imm32 ff ff ff 96  # >is_ident_start
 cmp_eax_imm8 01
 jcc_nq_imm8 0d          # >next_token_iterate_ident_end
 
 # .next_token_iterate_ident
 inc_r14
-call_imm32 ff ff ff 9d  # >is_ident
+call_imm32 ff ff ff a7  # >is_ident
 cmp_eax_imm8 01
 jcc_nq_imm8 f3          # >next_token_iterate_ident
 # .next_token_iterate_ident_end
@@ -925,7 +921,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff fe d4  # >allocate
+call_imm32 ff ff fe de  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -966,10 +962,12 @@ syscall
 # };
 #
 
-xor_r14d_r14d
-xor_r15d_r15d
+xor_r14d_r14d               # current offset in the file
+xor_r15d_r15d               # current line   in the file
 
-call_imm32 ff ff ff 15      # >next_token
+# TODO: parsing
+
+call_imm32 ff ff ff 1f      # >next_token
 
 mov_rdi_r14
 mov_eax_imm32 00 00 00 3c

@@ -1,4 +1,0 @@
-entry (argc: s64, argv: **s64) s64 {
-    return 0;
-}
-

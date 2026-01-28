@@ -251,7 +251,7 @@ def main():
         print("error [glib]: expected flag")
         sys.exit(1)
 
-    f = open("gbyl", "r+")
+    f = open("bylc", "r+")
     source = f.read()
 
     match sys.argv[0]:
