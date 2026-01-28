@@ -234,7 +234,11 @@ mov_esi_r13d () {
     write_u8 8b
     write_bits_8 11110101
 }
-
+mov_rsi_r14 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11110110
+}
 mov_rsi_imm64 () {
     write_u8 48
     write_bits_8 10111110
@@ -340,6 +344,10 @@ mov_edx_imm32 () {
 mov_edi_eax () {
     write_u8 8b
     write_bits_8 11111000
+}
+mov_edi_esi () {
+    write_u8 8b
+    write_bits_8 11111110
 }
 mov_edi_r14d () {
     write_u8 41
@@ -758,7 +766,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 ac # >entry
+jmp_imm32 00 00 00 bb # >entry
 
 # helper functions
 
@@ -864,15 +872,22 @@ jcc_q_imm32 ff ff ff d4           # >next_token_skip_whitespace_newline_and_tabs
 
 call_imm32 ff ff ff 96  # >is_ident_start
 cmp_eax_imm8 01
-jcc_nq_imm8 0d          # >next_token_iterate_ident_end
+jcc_nq_imm8 15          # >next_token_iterate_ident_end
+
+mov_rsi_r14             # rsi = TOKEN.beg
 
 # .next_token_iterate_ident
 inc_r14
-call_imm32 ff ff ff a7  # >is_ident
+movzx_edi_ea_r12_base_r14
+call_imm32 ff ff ff 9f  # >is_ident
 cmp_eax_imm8 01
-jcc_nq_imm8 f3          # >next_token_iterate_ident
+jcc_q_imm8 ee          # >next_token_iterate_ident
 # .next_token_iterate_ident_end
 
+xor_eax_eax             # rax = TOKEN.token_kind [0] = ident
+jmp_imm32 00 00 00 00   # >next_token_return
+
+# .next_token_return
 ret
 
 # ======= MAIN ========
@@ -921,7 +936,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff fe de  # >allocate
+call_imm32 ff ff fe cf  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -967,7 +982,7 @@ xor_r15d_r15d               # current line   in the file
 
 # TODO: parsing
 
-call_imm32 ff ff ff 1f      # >next_token
+call_imm32 ff ff ff 10      # >next_token
 
 mov_rdi_r14
 mov_eax_imm32 00 00 00 3c

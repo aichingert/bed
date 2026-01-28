@@ -246,12 +246,13 @@ def update_addresses(source):
 
 def main():
     sys.argv.pop(0)
+    file = "bylc"
 
     if len(sys.argv) == 0:
         print("error [glib]: expected flag")
         sys.exit(1)
 
-    f = open("bylc", "r+")
+    f = open(file, "r+")
     source = f.read()
 
     match sys.argv[0]:
@@ -276,7 +277,7 @@ def main():
         case "-c" | "--fix-calls":
             source, adr = update_addresses(source)
 
-            f = open("gbyl", "w")
+            f = open(file, "w")
             if adr > 1:
                 print(f"glib: updated {adr} addresses")
             else:
