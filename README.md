@@ -35,9 +35,14 @@ inc_data (*Data d) {
 }
 
 // NOTE: has to be provided as entry point
-main (s32 argc, **s8 argv) s8 {
+main (s32 argc, **s8 argv) {
     // ...
-    return 0;
+
+    // NOTE: provided by the compiler to invoke systemcalls
+    // first argument is the systemcall number and after it
+    // the values get filled by the abi specification
+    // rdi: 1st, rsi: 2nd, ...
+    #syscall(60, 0);  
 }
 ```
 
