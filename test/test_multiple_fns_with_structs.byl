@@ -1,11 +1,11 @@
    
 
-struct Dat {
+Dat {
     *s8 a,
     *s8 b,
 }
 
-struct Exemplus {
+Exemplus {
     [5]s8       buf,
     s8          ret,
     *Exemplus   G,
@@ -27,7 +27,7 @@ idiv (s64 a, s64 b s64) s64 {
     return a / b;
 }
 
-main (s32 argc, **s8 argv) s8 {
+main (s32 argc, **s8 argv) {
     *s8 name = 0;
     s8  base = 12;
     s64 offset = -1;
@@ -38,6 +38,6 @@ main (s32 argc, **s8 argv) s8 {
         ret = base + mem[0],
     };
 
-    return init.ret;
+    #syscall(60, init.ret);
 }
 

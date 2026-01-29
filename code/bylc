@@ -580,6 +580,11 @@ cmp_ebx_r13d () {
     write_u8 3b
     write_bits_8 11011101
 }
+cmp_r13_r14 () {
+    write_u8 4d
+    write_u8 3b
+    write_bits_8 11101110
+}
 cmp_rdi_rsi () {
     write_u8 48
     write_u8 39
@@ -766,7 +771,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 bb # >entry
+jmp_imm32 00 00 00 cd # >entry
 
 # helper functions
 
@@ -843,8 +848,19 @@ ret
 #   r14     | pos
 #   r15     | line
 # modify: rax, rdi, rsi
+# return:
+#   rax | TOKEN.token_kind
+#   rsi | TOKEN.beg
 
-jmp_imm8 03
+cmp_r13_r14
+jcc_nq_imm8 0d              # >next_token_begin
+
+mov_eax_imm32 00 00 00 50   # TOKEN.token_kind [80] EOF
+mov_rsi_r14
+jmp_imm32 00 00 00 54       # >next_token_return
+
+# .next_token_begin
+jmp_imm8 03             
 
 # .next_token_skip_whitespace_newline_and_tabs_beg
 inc_r14
@@ -868,9 +884,9 @@ cmovq_eax_esi
 cmp_edi_imm8 09
 cmovq_eax_esi
 cmp_eax_esi
-jcc_q_imm32 ff ff ff d4           # >next_token_skip_whitespace_newline_and_tabs_beg
+jcc_q_imm32 ff ff ff d4 # >next_token_skip_whitespace_newline_and_tabs_beg
 
-call_imm32 ff ff ff 96  # >is_ident_start
+call_imm32 ff ff ff 84  # >is_ident_start
 cmp_eax_imm8 01
 jcc_nq_imm8 15          # >next_token_iterate_ident_end
 
@@ -879,13 +895,14 @@ mov_rsi_r14             # rsi = TOKEN.beg
 # .next_token_iterate_ident
 inc_r14
 movzx_edi_ea_r12_base_r14
-call_imm32 ff ff ff 9f  # >is_ident
+call_imm32 ff ff ff 8d  # >is_ident
 cmp_eax_imm8 01
-jcc_q_imm8 ee          # >next_token_iterate_ident
+jcc_q_imm8 ee           # >next_token_iterate_ident
 # .next_token_iterate_ident_end
 
 xor_eax_eax             # rax = TOKEN.token_kind [0] = ident
 jmp_imm32 00 00 00 00   # >next_token_return
+
 
 # .next_token_return
 ret
@@ -936,7 +953,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff fe cf  # >allocate
+call_imm32 ff ff fe bd  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -952,23 +969,38 @@ mov_eax_imm32 00 00 00 03
 syscall
 
 # enum TokenKind [u32] {
-#   ident       = 0,
-#   number      = 1,
+#   ident       = 0         '__hellow_16'
+#   number      = 1         '112233'
 #
-#   DB_colon    = 20,
-#   Lparen      = 21,
-#   Rparen      = 22,
-#   Lbrace      = 23,
-#   Rbrace      = 24,
-#   Lbracket    = 25,
-#   Rbracket    = 26,
+#   TOK_L_PAREN     = 21    '('
+#   TOK_R_PAREN     = 22    ')'
+#   TOK_L_BRACE     = 23    '{'
+#   TOK_R_BRACE     = 24    '}'
+#   TOK_L_BRACKET   = 25    '['
+#   TOK_R_BRACKET   = 26    ']'
+#   TOK_STAR        = 27    '*'
+#   TOK_ROOF        = 28    '^'
+#   TOK_EQUAL       = 29    '='
+#   TOK_COMMA       = 30    ','
+#   TOK_SEMICOLON   = 31    ';'
+#   TOK_HASHTAG     = 32    '#'
+#   TOK_PLUS        = 33    '+'
+#   TOK_MINUS       = 34    '-'
+#   TOK_SLASH       = 35    '/'
+#   TOK_DOT         = 36    '.'
+#   
+#   TODO: thinking about adding token types for //
 #
-#   KW_struct   = 40,
-#   KW_if       = 41,
-#   KW_while    = 41,
-#   WK_return   = 42,
+#   KW_if       = 40        'if'
+#   KW_while    = 41        'while'
+#   WK_return   = 42        'return'
 #
-#   Type_s64    = 60
+#   Type_s8     = 60        's8'
+#   Type_s16    = 61        's16'
+#   Type_s32    = 62        's32'
+#   Type_s64    = 63        's64'
+#
+#   EOF         = 80
 # };
 #
 # struct Token [u64] {
@@ -982,9 +1014,9 @@ xor_r15d_r15d               # current line   in the file
 
 # TODO: parsing
 
-call_imm32 ff ff ff 10      # >next_token
+call_imm32 ff ff fe fe      # >next_token
 
-mov_rdi_r14
+mov_edi_eax
 mov_eax_imm32 00 00 00 3c
 syscall
 
