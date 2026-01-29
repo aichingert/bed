@@ -386,6 +386,11 @@ mov_rdi_rdx () {
     write_u8 8b
     write_bits_8 11111010
 }
+mov_rdi_rsi () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11111110
+}
 mov_rdi_r12 () {
     write_u8 49
     write_u8 8b
@@ -771,7 +776,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 00 cd # >entry
+jmp_imm32 00 00 00 ee # >entry
 
 # helper functions
 
@@ -857,7 +862,7 @@ jcc_nq_imm8 0d              # >next_token_begin
 
 mov_eax_imm32 00 00 00 50   # TOKEN.token_kind [80] EOF
 mov_rsi_r14
-jmp_imm32 00 00 00 54       # >next_token_return
+jmp_imm32 00 00 00 75       # >next_token_return
 
 # .next_token_begin
 jmp_imm8 03             
@@ -886,11 +891,11 @@ cmovq_eax_esi
 cmp_eax_esi
 jcc_q_imm32 ff ff ff d4 # >next_token_skip_whitespace_newline_and_tabs_beg
 
-call_imm32 ff ff ff 84  # >is_ident_start
-cmp_eax_imm8 01
-jcc_nq_imm8 15          # >next_token_iterate_ident_end
-
 mov_rsi_r14             # rsi = TOKEN.beg
+
+call_imm32 ff ff ff 81  # >is_ident_start
+cmp_eax_imm8 01
+jcc_nq_imm8 19          # >next_token_check_single_chars
 
 # .next_token_iterate_ident
 inc_r14
@@ -901,8 +906,31 @@ jcc_q_imm8 ee           # >next_token_iterate_ident
 # .next_token_iterate_ident_end
 
 xor_eax_eax             # rax = TOKEN.token_kind [0] = ident
-jmp_imm32 00 00 00 00   # >next_token_return
+jmp_imm32 00 00 00 21   # >next_token_return
 
+# .next_token_check_single_chars
+
+# TODO: most compilers could probably optimize this into 
+# something very neat but I am only a human after all...
+
+# TOK_L_PAREN [21] '('
+cmp_edi_imm8 28
+jcc_nq_imm8 0a          # >next_token_check_TOK_R_PAREN
+mov_eax_imm32 00 00 00 15
+jmp_imm32 00 00 00 0f   # >next_token_advance
+
+# TOK_R_PAREN [22] ')'
+# .next_token_check_TOK_R_PAREN
+cmp_edi_imm8 29
+jcc_nq_imm8 0a          # >next_token_check_TOK_L_BRACE
+mov_eax_imm32 00 00 00 16
+jmp_imm32 00 00 00 00   # >next_token_advance
+
+# TOK_L_BRACE [23] '{'
+# .next_token_check_TOK_L_BRACE
+
+# .next_token_advance
+inc_r14
 
 # .next_token_return
 ret
@@ -953,7 +981,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff fe bd  # >allocate
+call_imm32 ff ff fe 9c  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -1014,9 +1042,10 @@ xor_r15d_r15d               # current line   in the file
 
 # TODO: parsing
 
-call_imm32 ff ff fe fe      # >next_token
+call_imm32 ff ff fe dd      # >next_token
+call_imm32 ff ff fe d8      # >next_token
 
-mov_edi_eax
+mov_rdi_r14
 mov_eax_imm32 00 00 00 3c
 syscall
 
