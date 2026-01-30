@@ -782,7 +782,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 01 cc # >entry
+jmp_imm32 00 00 02 01 # >entry
 
 # helper functions
 
@@ -852,6 +852,21 @@ inc_eax
 # .is_ident_ret
 ret
 
+# .is_number
+# args:
+#   rdi | char
+# return:
+#   rax | bool
+xor_eax_eax
+cmp_edi_imm8 30
+jcc_l_imm8 07 # >is_number_ret
+cmp_edi_imm8 39
+jcc_g_imm8 02 # >is_number_ret
+
+inc_eax
+# .is_number_ret
+ret
+
 # .next_token
 # args:
 #   r12     | file
@@ -868,7 +883,7 @@ jcc_nq_imm8 0d              # >next_token_begin
 
 mov_eax_imm32 00 00 00 50   # TOKEN.token_kind [80] EOF
 mov_rsi_r14
-jmp_imm32 00 00 01 53       # >next_token_return
+jmp_imm32 00 00 01 79       # >next_token_return
 
 # .next_token_begin
 jmp_imm8 03             
@@ -899,19 +914,36 @@ jcc_q_imm32 ff ff ff d4 # >next_token_skip_whitespace_newline_and_tabs_beg
 
 mov_rsi_r14             # rsi = TOKEN.beg
 
-call_imm32 ff ff ff 81  # >is_ident_start
+call_imm32 ff ff ff 72  # >is_ident_start
 cmp_eax_imm8 01
-jcc_nq_imm8 19          # >next_token_check_single_chars
+jcc_nq_imm8 19          # >next_token_check_number
 
 # .next_token_iterate_ident
 inc_r14
 movzx_edi_ea_r12_base_r14
-call_imm32 ff ff ff 8d  # >is_ident
+call_imm32 ff ff ff 7e  # >is_ident
 cmp_eax_imm8 01
 jcc_q_imm8 ee           # >next_token_iterate_ident
 # .next_token_iterate_ident_end
 
 xor_eax_eax             # rax = TOKEN.token_kind [0] = ident
+jmp_imm32 00 00 01 25   # >next_token_return
+
+# .next_token_check_number
+
+call_imm32 ff ff ff 86  # >is_number
+cmp_eax_imm8 01
+jcc_nq_imm8 1c          # >next_token_check_single_chars
+
+# .next_token_iterate_number
+inc_r14
+movzx_edi_ea_r12_base_r14
+call_imm32 ff ff ff 74  # >is_number
+cmp_eax_imm8 01
+jcc_q_imm8 ee           # >next_token_iterate_number
+# .next_token_iterate_number_end
+
+mov_eax_imm32 00 00 00 01
 jmp_imm32 00 00 00 ff   # >next_token_return
 
 # .next_token_check_single_chars
@@ -1087,7 +1119,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff fd be  # >allocate
+call_imm32 ff ff fd 89  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -1148,9 +1180,9 @@ xor_r15d_r15d               # current line   in the file
 
 # TODO: parsing
 
-call_imm32 ff ff fd ff      # >next_token
+call_imm32 ff ff fd d9      # >next_token
 
-mov_rdi_rax
+mov_rdi_r14
 mov_eax_imm32 00 00 00 3c
 syscall
 
