@@ -119,7 +119,9 @@ def get_bytes_in_range(src, dst, source):
                 pos += 1
 
             if beg != pos:
-                sum_of_bytes += get_bytes_from_func(source[beg:pos],  source)
+                iden = source[beg:pos]
+                sum_of_bytes += get_bytes_from_func(iden, source)
+                pos += 3 * get_byte_size_from_str_end(iden) - 1
         pos += 1
     return sum_of_bytes
 
@@ -211,7 +213,11 @@ def update_addresses(source):
             
             adr += 1
             source = source[:arg] + newoff + source[arg + len(newoff):]
-        pos += 1
+        else:
+            skip_imm_val = 3 * get_byte_size_from_str_end(iden)
+            pos += skip_imm_val
+            if skip_imm_val == 0:
+                pos += 1
 
     for entry in que:
         [eiden, ebytes, elbl, efile] = entry
