@@ -70,73 +70,73 @@ write_u64 () {
 }
 
 push_u64 () {
-    REXW=48
+    REX=48
     if test ! -z $2 ; then 
-        REXW=$(expr $REXW + $2)
+        REX=$(expr $REX + $2)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 ff
     write_bits_8 "11110${1}"
 }
 
 pop_u64 () {
-    REXW=48
+    REX=48
     if test ! -z $2 ; then 
-        REXW=$(expr $REXW + $2)
+        REX=$(expr $REX + $2)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 8f
     write_bits_8 "11000${1}"
 }
 
 neg_u64 () {
-    REXW=48
+    REX=48
     if test ! -z $2 ; then
-        REXW=$(expr $REXW + $2)
+        REX=$(expr $REX + $2)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 f7
     write_bits_8 "11011${1}"
 }
 
 shl_u64_imm8 () {
-    REXW=48
+    REX=48
     if test ! -z $3 ; then
-        REXW=$(expr $REXW + $3)
+        REX=$(expr $REX + $3)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 c1
     write_bits_8 "11100${1}"
     write_u8 $2
 }
 
 shr_u64_imm8 () {
-    REXW=48
+    REX=48
     if test ! -z $3 ; then
-        REXW=$(expr $REXW + $3)
+        REX=$(expr $REX + $3)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 c1
     write_bits_8 "11101${1}"
     write_u8 $2
 }
 
 shl_u64_once () {
-    REXW=48
+    REX=48
     if test ! -z $2 ; then
-        REXW=$(expr $REXW + $2)
+        REX=$(expr $REX + $2)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 d1
     write_bits_8 "11100${1}"
 }
 
 shr_u64_once () {
-    REXW=48
+    REX=48
     if test ! -z $2 ; then
-        REXW=$(expr $REXW + $2)
+        REX=$(expr $REX + $2)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 d1
     write_bits_8 "11111${1}"
 }
@@ -160,11 +160,11 @@ add_u32_imm32 () {
 }
 
 add_u64_imm32 () {
-    REXW=48
+    REX=48
     if test ! -z $6 ; then
-        REXW=$(expr $REXW + $6)
+        REX=$(expr $REX + $6)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 81
     write_bits_8 "11000${1}"
     write_u32 $2 $3 $4 $5
@@ -180,192 +180,67 @@ and_u32_imm32 () {
 }
 
 and_u64_imm32 () {
-    REXW=48
+    REX=48
     if test ! -z $6 ; then
-        REXW=$(expr $REXW + $6)
+        REX=$(expr $REX + $6)
     fi
-    write_u8 $REXW
+    write_u8 $REX
     write_u8 81
     write_bits_8 "11100${1}"
     write_u32 $2 $3 $4 $5
 }
 
-mov_esi_r13d () {
-    write_u8 41
-    write_u8 8b
-    write_bits_8 11110101
+mov_u32_imm32 () {
+    if test ! -z $6 ; then
+        write_u8 41
+    fi
+    write_u8 c7
+    write_bits_8 "11000${1}"
+    write_u32 $2 $3 $4 $5
 }
-mov_rsi_rax () {
-    write_u8 48
+
+mov_u32_u32 () {
+    if test ! -z $3 ; then
+        REX=41
+        REX=$(expr $REX + $3)
+        write_u8 $REX
+    fi
     write_u8 8b
-    write_bits_8 11110000
+    write_bits_8 "11${1}${2}"
 }
-mov_rsi_r12 () {
-    write_u8 49
+
+mov_u64_u64 () {
+    REX=48
+    if test ! -z $3 ; then
+        if test $3 -eq "0" ; then
+            REX="49"
+        else
+            REX="4c"
+        fi
+    fi
+    write_u8 $REX
     write_u8 8b
-    write_bits_8 11110100
+    write_bits_8 "11${1}${2}"
 }
-mov_rsi_r13 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11110101
-}
-mov_rsi_r14 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11110110
-}
-mov_rsi_r15 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11110111
-}
+
 mov_rsi_imm64 () {
     write_u8 48
     write_bits_8 10111110
     write_u64 $1 $2 $3 $4 $5 $6 $7 $8
 }
-mov_r15_rsi () {
-    write_u8 44
-    write_u8 8b
-    write_bits_8 11111110
-}
 
-xor_edx_edx () {
+xor_self_u32 () {
+    if test ! -z $2 ; then
+        write_u8 45
+    fi
     write_u8 33
-    write_bits_8 11010010
-}
-xor_ebx_ebx() {
-    write_u8 33
-    write_bits_8 11011011
-}
-xor_eax_eax () {
-    write_u8 33
-    write_bits_8 11000000
-}
-xor_edi_edi () {
-    write_u8 33
-    write_bits_8 11111111
-}
-xor_esi_esi () {
-    write_u8 33
-    write_bits_8 11110110
-}
-xor_r14d_r14d () {
-    write_u8 45
-    write_u8 33
-    write_bits_8 11110110
-}
-xor_r15d_r15d () {
-    write_u8 45
-    write_u8 33
-    write_bits_8 11111111
-}
-
-mov_r8d_imm32 () {
-    write_u8 41
-    write_u8 b8
-    write_u32 $1 $2 $3 $4
-}
-
-mov_r9d_imm32 () {
-    write_u8 41
-    write_u8 b9
-    write_u32 $1 $2 $3 $4
-}
-
-mov_r10d_imm32 () {
-    write_u8 41
-    write_u8 ba
-    write_u32 $1 $2 $3 $4
+    write_bits_8 "11${1}${1}"
 }
 
 mov_rdx_imm64 () {
     write_u8 48
     write_bits_8 10111010
     write_u64 $1 $2 $3 $4 $5 $6 $7 $8
-}
-
-mov_rdx_r13 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11010101
-}
-
-mov_edx_imm32 () {
-    write_u8        ba
-    write_u32       $1 $2 $3 $4
-}
-
-mov_edi_eax () {
-    write_u8 8b
-    write_bits_8 11111000
-}
-mov_edi_esi () {
-    write_u8 8b
-    write_bits_8 11111110
-}
-mov_edi_r14d () {
-    write_u8 41
-    write_u8 8b
-    write_bits_8 11111110
-}
-mov_edi_r15d () {
-    write_u8 41
-    write_u8 8b
-    write_bits_8 11111111
-}
-mov_edi_imm32 () {
-    write_bits_8    10111111
-    write_u32       $1 $2 $3 $4
-}
-
-mov_r12_rax () {
-    write_u8 4c
-    write_u8 8b
-    write_bits_8 11100000
-}
-
-mov_r13_rax () {
-    write_u8 4c
-    write_u8 8b
-    write_bits_8 11101000
-}
-
-mov_r14_rax () {
-    write_u8 4c
-    write_u8 8b
-    write_bits_8 11110000
-}
-mov_rdi_rdx () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11111010
-}
-mov_rdi_rsi () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11111110
-}
-mov_rdi_r12 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11111100
-}
-mov_rdi_r13 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11111101
-}
-mov_rdi_r14 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11111110
-}
-mov_rdi_r15 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11111111
 }
 
 mov_rax_ea_r14 () {
@@ -386,51 +261,6 @@ mov_rax_ea_rcx_disp32 () {
     write_u8 b6
     write_bits_8 10000001
     write_u32 $1 $2 $3 $4
-}
-
-mov_eax_imm32 () {
-    write_bits_8    10111000
-    write_u32       $1 $2 $3 $4
-}
-mov_esi_imm32 () {
-    write_bits_8    10111110
-    write_u32       $1 $2 $3 $4
-}
-
-mov_rdi_rax () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11111000
-}
-
-mov_rdi_rcx () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11111001
-}
-
-mov_rdi_rbx () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11111011
-}
-
-mov_rcx_rax () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11001000
-}
-
-mov_rbx_rax () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11011000
-}
-
-mov_rax_rsp () {
-    write_u8 48
-    write_u8 89
-    write_bits_8 11100000
 }
 
 movzx_eax_ea_r12_base_rbx () {
@@ -737,7 +567,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 01 ff # >entry
+jmp_imm32 00 00 02 1a # >entry
 
 # helper functions
 
@@ -749,14 +579,14 @@ jmp_imm32 00 00 01 ff # >entry
 #   r10 | flags      get set by func
 #   r8  | fd         no file mapping so -1
 #   r9  | pgoff     idk 0
-xor_edi_edi
+xor_self_u32 $di
 add_u32_imm32 $si 00 00 0f ff
 and_u32_imm32 $si ff ff f0 00
-mov_edx_imm32 00 00 00 03
-mov_r10d_imm32 00 00 00 22
-mov_r8d_imm32 ff ff ff ff
-mov_r9d_imm32 00 00 00 00
-mov_eax_imm32 00 00 00 09
+mov_u32_imm32 $dx 00 00 00 03
+mov_u32_imm32 $r10 00 00 00 22 0
+mov_u32_imm32 $r8 ff ff ff ff 0
+xor_self_u32 $r9 0
+mov_u32_imm32 $ax 00 00 00 09
 syscall
 ret
 
@@ -767,7 +597,7 @@ ret
 #   rdi | char
 # return:
 #   rax | bool
-xor_eax_eax
+xor_self_u32 $ax
 # if chr is underscore 
 cmp_edi_imm8 5f # '_'
 jcc_q_imm8 14 # >is_ident_start_true
@@ -791,8 +621,8 @@ ret
 #   rdi | char
 # return:
 #   rax | bool
-xor_eax_eax
-call_imm32 ff ff ff db  # >is_ident_start
+xor_self_u32 $ax
+call_imm32 ff ff ff d9  # >is_ident_start
 cmp_eax_imm8 01
 jcc_q_imm8 0c           # >is_ident_ret
 
@@ -812,7 +642,7 @@ ret
 #   rdi | char
 # return:
 #   rax | bool
-xor_eax_eax
+xor_self_u32 $ax
 cmp_edi_imm8 30
 jcc_l_imm8 07 # >is_number_ret
 cmp_edi_imm8 39
@@ -834,11 +664,11 @@ ret
 #   rsi | TOKEN.beg
 
 cmp_r13_r14
-jcc_l_imm8 0d               # >next_token_begin
+jcc_l_imm8 0e                   # >next_token_begin
 
-mov_eax_imm32 00 00 00 50   # TOKEN.token_kind [80] EOF
-mov_rsi_r14
-jmp_imm32 00 00 01 79       # >next_token_return
+mov_u32_imm32 $ax 00 00 00 50   # TOKEN.token_kind [80] EOF
+mov_u64_u64 $si $r14 0
+jmp_imm32 00 00 01 8e           # >next_token_return
 
 # .next_token_begin
 jmp_imm8 03             
@@ -855,7 +685,7 @@ inc_r14
 # }
 
 lea_rsi_r15_disp8 01
-xor_eax_eax
+xor_self_u32 $ax
 movzx_edi_ea_r12_base_r14
 cmp_edi_imm8 0a
 cmovq_eax_esi
@@ -865,41 +695,41 @@ cmovq_eax_esi
 cmp_edi_imm8 09
 cmovq_eax_esi
 cmp_eax_esi
-jcc_q_imm32 ff ff ff d4 # >next_token_skip_whitespace_newline_and_tabs_beg
+jcc_q_imm32 ff ff ff d3 # >next_token_skip_whitespace_newline_and_tabs_beg
 
-mov_rsi_r14             # rsi = TOKEN.beg
+mov_u64_u64 $si $r14 0  # rsi = TOKEN.beg
 
-call_imm32 ff ff ff 72  # >is_ident_start
+call_imm32 ff ff ff 6d  # >is_ident_start
 cmp_eax_imm8 01
-jcc_nq_imm8 19          # >next_token_check_number
+jcc_nq_imm8 1a          # >next_token_check_number
 
 # .next_token_iterate_ident
 inc_r14
 movzx_edi_ea_r12_base_r14
-call_imm32 ff ff ff 7e  # >is_ident
+call_imm32 ff ff ff 7a  # >is_ident
 cmp_eax_imm8 01
 jcc_q_imm8 ee           # >next_token_iterate_ident
 # .next_token_iterate_ident_end
 
-xor_eax_eax             # rax = TOKEN.token_kind [0] = ident
-jmp_imm32 00 00 01 25   # >next_token_return
+xor_self_u32 $ax        # rax = TOKEN.token_kind [0] = ident
+jmp_imm32 00 00 01 38   # >next_token_return
 
 # .next_token_check_number
 
-call_imm32 ff ff ff 86  # >is_number
+call_imm32 ff ff ff 82  # >is_number
 cmp_eax_imm8 01
-jcc_nq_imm8 1c          # >next_token_check_single_chars
+jcc_nq_imm8 1d          # >next_token_check_single_chars
 
 # .next_token_iterate_number
 inc_r14
 movzx_edi_ea_r12_base_r14
-call_imm32 ff ff ff 74  # >is_number
+call_imm32 ff ff ff 70  # >is_number
 cmp_eax_imm8 01
 jcc_q_imm8 ee           # >next_token_iterate_number
 # .next_token_iterate_number_end
 
-mov_eax_imm32 00 00 00 01
-jmp_imm32 00 00 00 ff   # >next_token_return
+mov_u32_imm32 $ax 00 00 00 01
+jmp_imm32 00 00 01 11   # >next_token_return
 
 # .next_token_check_single_chars
 
@@ -908,118 +738,118 @@ jmp_imm32 00 00 00 ff   # >next_token_return
 
 # TOK_L_PAREN [21] '('
 cmp_edi_imm8 28
-jcc_nq_imm8 0a          # >next_token_check_TOK_R_PAREN
-mov_eax_imm32 00 00 00 15
-jmp_imm32 00 00 00 ed   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_R_PAREN
+mov_u32_imm32 $ax 00 00 00 15
+jmp_imm32 00 00 00 fe   # >next_token_advance
 
 # TOK_R_PAREN [22] ')'
 # .next_token_check_TOK_R_PAREN
 cmp_edi_imm8 29
-jcc_nq_imm8 0a          # >next_token_check_TOK_L_BRACE
-mov_eax_imm32 00 00 00 16
-jmp_imm32 00 00 00 de   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_L_BRACE
+mov_u32_imm32 $ax 00 00 00 16
+jmp_imm32 00 00 00 ee   # >next_token_advance
 
 # TOK_L_BRACE [23] '{'
 # .next_token_check_TOK_L_BRACE
 cmp_edi_imm8 7b
-jcc_nq_imm8 0a          # >next_token_check_TOK_R_BRACE
-mov_eax_imm32 00 00 00 17
-jmp_imm32 00 00 00 cf   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_R_BRACE
+mov_u32_imm32 $ax 00 00 00 17
+jmp_imm32 00 00 00 de   # >next_token_advance
 
 # TOK_R_BRACE [24] '}'
 # .next_token_check_TOK_R_BRACE
 cmp_edi_imm8 7d
-jcc_nq_imm8 0a          # >next_token_check_TOK_L_BRACKET
-mov_eax_imm32 00 00 00 18
-jmp_imm32 00 00 00 c0   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_L_BRACKET
+mov_u32_imm32 $ax 00 00 00 18
+jmp_imm32 00 00 00 ce   # >next_token_advance
 
 # TOK_L_BRACKET [25] '['
 # .next_token_check_TOK_L_BRACKET
 cmp_edi_imm8 5b
-jcc_nq_imm8 0a          # >next_token_check_TOK_R_BRACKET
-mov_eax_imm32 00 00 00 19
-jmp_imm32 00 00 00 b1   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_R_BRACKET
+mov_u32_imm32 $ax 00 00 00 19
+jmp_imm32 00 00 00 be   # >next_token_advance
 
 # TOK_R_BRACKET [26] ']'
 # .next_token_check_TOK_R_BRACKET
 cmp_edi_imm8 5d
-jcc_nq_imm8 0a          # >next_token_check_TOK_STAR
-mov_eax_imm32 00 00 00 1a
-jmp_imm32 00 00 00 a2   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_STAR
+mov_u32_imm32 $ax 00 00 00 1a
+jmp_imm32 00 00 00 ae   # >next_token_advance
 
 # TOK_STAR  [27] '*'
 # .next_token_check_TOK_STAR
 cmp_edi_imm8 2a
-jcc_nq_imm8 0a          # >next_token_check_TOK_ROOF
-mov_eax_imm32 00 00 00 1b
-jmp_imm32 00 00 00 93   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_ROOF
+mov_u32_imm32 $ax 00 00 00 1b
+jmp_imm32 00 00 00 9e   # >next_token_advance
 
 # TOK_ROOF  [28] '^'
 # .next_token_check_TOK_ROOF
 cmp_edi_imm8 5e
-jcc_nq_imm8 0a          # >next_token_check_TOK_EQUAL
-mov_eax_imm32 00 00 00 1c
-jmp_imm32 00 00 00 84   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_EQUAL
+mov_u32_imm32 $ax 00 00 00 1c
+jmp_imm32 00 00 00 8e   # >next_token_advance
 
 # TOK_EQUAL  [29] '='
 # .next_token_check_TOK_EQUAL
 cmp_edi_imm8 3d
-jcc_nq_imm8 0a          # >next_token_check_TOK_COMMA
-mov_eax_imm32 00 00 00 1d
-jmp_imm32 00 00 00 75   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_COMMA
+mov_u32_imm32 $ax 00 00 00 1d
+jmp_imm32 00 00 00 7e   # >next_token_advance
 
 # TOK_COMMA  [30] ','
 # .next_token_check_TOK_COMMA
 cmp_edi_imm8 2c
-jcc_nq_imm8 0a          # >next_token_check_TOK_SEMICOLON
-mov_eax_imm32 00 00 00 1e
-jmp_imm32 00 00 00 66   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_SEMICOLON
+mov_u32_imm32 $ax 00 00 00 1e
+jmp_imm32 00 00 00 6e   # >next_token_advance
 
 # TOK_SEMICOLON  [31] ';'
 # .next_token_check_TOK_SEMICOLON
 cmp_edi_imm8 3b
-jcc_nq_imm8 0a          # >next_token_check_TOK_HASHTAG
-mov_eax_imm32 00 00 00 1f
-jmp_imm32 00 00 00 57   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_HASHTAG
+mov_u32_imm32 $ax 00 00 00 1f
+jmp_imm32 00 00 00 5e   # >next_token_advance
 
 # TOK_HASHTAG  [32] '#'
 # .next_token_check_TOK_HASHTAG
 cmp_edi_imm8 23
-jcc_nq_imm8 0a          # >next_token_check_TOK_PLUS
-mov_eax_imm32 00 00 00 20
-jmp_imm32 00 00 00 48   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_PLUS
+mov_u32_imm32 $ax 00 00 00 20
+jmp_imm32 00 00 00 4e   # >next_token_advance
 
 # TOK_PLUS  [33] '+'
 # .next_token_check_TOK_PLUS
 cmp_edi_imm8 2b
-jcc_nq_imm8 0a          # >next_token_check_TOK_MINUS
-mov_eax_imm32 00 00 00 21
-jmp_imm32 00 00 00 39   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_MINUS
+mov_u32_imm32 $ax 00 00 00 21
+jmp_imm32 00 00 00 3e   # >next_token_advance
 
 # TOK_MINUS  [34] '-'
 # .next_token_check_TOK_MINUS
 cmp_edi_imm8 2d
-jcc_nq_imm8 0a          # >next_token_check_TOK_SLASH
-mov_eax_imm32 00 00 00 22
-jmp_imm32 00 00 00 2a   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_SLASH
+mov_u32_imm32 $ax 00 00 00 22
+jmp_imm32 00 00 00 2e   # >next_token_advance
 
 # TOK_SLASH  [35] '/'
 # .next_token_check_TOK_SLASH
 cmp_edi_imm8 2f
-jcc_nq_imm8 0a          # >next_token_check_TOK_DOT
-mov_eax_imm32 00 00 00 23
-jmp_imm32 00 00 00 1b   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_check_TOK_DOT
+mov_u32_imm32 $ax 00 00 00 23
+jmp_imm32 00 00 00 1e   # >next_token_advance
 
 # TOK_DOT  [36] '.'
 # .next_token_check_TOK_DOT
 cmp_edi_imm8 2e
-jcc_nq_imm8 0a          # >next_token_invalid_token
-mov_eax_imm32 00 00 00 24
-jmp_imm32 00 00 00 0c   # >next_token_advance
+jcc_nq_imm8 0b          # >next_token_invalid_token
+mov_u32_imm32 $ax 00 00 00 24
+jmp_imm32 00 00 00 0e   # >next_token_advance
 
 # .next_token_invalid_token
-mov_edi_imm32 00 00 00 03
-mov_eax_imm32 00 00 00 3c
+mov_u32_imm32 $di 00 00 00 03
+mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
 # .next_token_advance
@@ -1034,16 +864,20 @@ ret
 # args:
 #   rsp | holds argc, argv and environ probably
 
+mov_u32_imm32 $ax 00 00 00 00
+mov_u32_imm32 $di 00 00 00 01
+syscall
+
 mov_rdi_ea_rsp_disp8 00
 cmp_rdi_imm8 02
 jcc_q_imm8 0c
 # TODO: error no file provided
-mov_edi_imm32 00 00 00 01
-mov_eax_imm32 00 00 00 3c
+mov_u32_imm32 $di 00 00 00 01
+mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
 # get file descriptor
-mov_eax_imm32 00 00 00 02
+mov_u32_imm32 $ax 00 00 00 02
 mov_rdi_ea_rsp_disp8 10 # argv[1]
 mov_rsi_imm64 00 00 00 00 00 00 00 02
 mov_rdx_imm64 00 00 00 00 00 00 01 a4
@@ -1052,42 +886,42 @@ syscall
 cmp_rax_imm8 00
 jcc_ns_imm8 0c
 # TODO: error unable to read file
-mov_edi_imm32 00 00 00 02
-mov_eax_imm32 00 00 00 3c
+mov_u32_imm32 $di 00 00 00 02
+mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
-mov_r14_rax # fd
+mov_u64_u64 $r14 $ax 1  # fd
 
 # get file size
-mov_rdi_rax
-xor_esi_esi
-mov_edx_imm32 00 00 00 02
-mov_eax_imm32 00 00 00 08
+mov_u64_u64 $di $ax
+xor_self_u32 $si
+mov_u32_imm32 $dx 00 00 00 02
+mov_u32_imm32 $ax 00 00 00 08
 syscall
 
-mov_r13_rax # file_size
+mov_u64_u64 $r13 $ax 1  # file_size
 
-mov_rdi_r14
-xor_esi_esi
-xor_edx_edx
-mov_eax_imm32 00 00 00 08
+mov_u64_u64 $di $r14 0
+xor_self_u32 $si
+xor_self_u32 $dx
+mov_u32_imm32 $ax 00 00 00 08
 syscall
 
 # allocate file size aligned to page size
-mov_esi_r13d
-call_imm32 ff ff fd 8b  # >allocate
-mov_r12_rax             # r12       file ptr
+mov_u32_u32 $si $r13 0
+call_imm32 ff ff fd 58  # >allocate
+mov_u64_u64 $r12 $ax 1  # r12 file_ptr
 
 # read file
-mov_rdi_r14
-mov_rsi_rax
-mov_rdx_r13
-xor_eax_eax
+mov_u64_u64 $di $r14 0
+mov_u64_u64 $si $ax
+mov_u64_u64 $dx $r13 0
+xor_self_u32 $ax
 syscall
 
 # close file
-mov_rdi_r14
-mov_eax_imm32 00 00 00 03
+mov_u64_u64 $di $r14 0
+mov_u32_imm32 $ax 00 00 00 03
 syscall
 
 # enum TokenKind [u32] {
@@ -1132,17 +966,17 @@ syscall
 
 # ============== ELF_HEADER ============================
 
-mov_rsi_r13
+mov_u64_u64 $si $r13 0
 shl_u64_imm8 $si 04
-call_imm32 ff ff fd 65 # >allocate
+call_imm32 ff ff fd 30 # >allocate
 
 # xor_edi_edi
 # mov_ea_rax_base_rdi_imm64
 
 # ============== PARSING / CODE_GEN ====================
 
-xor_r14d_r14d               # current offset in the file
-xor_r15d_r15d               # current line   in the file
+xor_self_u32 $r14 1             # current offset in the file
+xor_self_u32 $r15 1             # current line   in the file
 
 # struct Var  {
 #   u64     flags;
@@ -1177,11 +1011,10 @@ xor_r15d_r15d               # current line   in the file
 #   }
 # } while token.kind != EOF
 
-call_imm32 ff ff fd cd      # >next_token
+call_imm32 ff ff fd 9d      # >next_token
 
-
-mov_rdi_rax
-mov_eax_imm32 00 00 00 3c
+mov_u64_u64 $di $ax
+mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
 # .shell_script_write_final_output
