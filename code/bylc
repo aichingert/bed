@@ -16,6 +16,23 @@ INST="$(date +%s)"
 BUFF=$FILE
 SIZE=0
 
+ax="000"
+cx="001"
+dx="010"
+bx="011"
+sp="100"
+bp="101"
+si="110"
+di="111"
+r8="000"
+r9="001"
+r10="010"
+r11="011"
+r12="100"
+r13="101"
+r14="110"
+r15="111"
+
 if test -e "$FILE" ; then
     rm "$FILE"
 fi
@@ -52,127 +69,76 @@ write_u64 () {
     write_u32 $1 $2 $3 $4
 }
 
-push_rax () {
-    write_u8 48
+push_u64 () {
+    REXW=48
+    if test ! -z $2 ; then 
+        REXW=$(expr $REXW + $2)
+    fi
+    write_u8 $REXW
     write_u8 ff
-    write_bits_8 11110000
-}
-push_rcx () {
-    write_u8 48
-    write_u8 ff
-    write_bits_8 11110001
-}
-push_rdx () {
-    write_u8 48
-    write_u8 ff
-    write_bits_8 11110010
-}
-push_rbx () {
-    write_u8 48
-    write_u8 ff
-    write_bits_8 11110011
-}
-push_rsi () {
-    write_u8 48
-    write_u8 ff
-    write_bits_8 11110110
-}
-push_rdi () {
-    write_u8 48
-    write_u8 ff
-    write_bits_8 11110111
-}
-push_r15 () {
-    write_u8 49
-    write_u8 ff
-    write_bits_8 11110111
+    write_bits_8 "11110${1}"
 }
 
-pop_rax () {
-    write_u8 48
+pop_u64 () {
+    REXW=48
+    if test ! -z $2 ; then 
+        REXW=$(expr $REXW + $2)
+    fi
+    write_u8 $REXW
     write_u8 8f
-    write_bits_8 11000000
-}
-pop_rcx () {
-    write_u8 48
-    write_u8 8f
-    write_bits_8 11000001
-}
-pop_rdx () {
-    write_u8 48
-    write_u8 8f
-    write_bits_8 11000010
-}
-pop_rbx () {
-    write_u8 48
-    write_u8 8f
-    write_bits_8 11000011
-}
-pop_rsi () {
-    write_u8 48
-    write_u8 8f
-    write_bits_8 11000110
-}
-pop_rdi () {
-    write_u8 48
-    write_u8 8f
-    write_bits_8 11000111
-}
-pop_r15 () {
-    write_u8 49
-    write_u8 8f
-    write_bits_8 11000111
+    write_bits_8 "11000${1}"
 }
 
-neg_rdi () {
-    write_u8 48
+neg_u64 () {
+    REXW=48
+    if test ! -z $2 ; then
+        REXW=$(expr $REXW + $2)
+    fi
+    write_u8 $REXW
     write_u8 f7
-    write_bits_8 11011111
+    write_bits_8 "11011${1}"
 }
 
-shr_rax_imm8 () {
-    write_u8 48
+shl_u64_imm8 () {
+    REXW=48
+    if test ! -z $3 ; then
+        REXW=$(expr $REXW + $3)
+    fi
+    write_u8 $REXW
     write_u8 c1
-    write_bits_8 11101000
-    write_u8 $1
-}
-shr_rcx_imm8 () {
-    write_u8 48
-    write_u8 c1
-    write_bits_8 11101001
-    write_u8 $1
-}
-shr_rsi_imm8 () {
-    write_u8 48
-    write_u8 c1
-    write_bits_8 11101110
-    write_u8 $1
+    write_bits_8 "11100${1}"
+    write_u8 $2
 }
 
-shr_r15_imm8 () {
-    write_u8 49
+shr_u64_imm8 () {
+    REXW=48
+    if test ! -z $3 ; then
+        REXW=$(expr $REXW + $3)
+    fi
+    write_u8 $REXW
     write_u8 c1
-    write_bits_8 11101111
-    write_u8 $1
+    write_bits_8 "11101${1}"
+    write_u8 $2
 }
 
-shl_rsi_once () {
-    write_u8 48
+shl_u64_once () {
+    REXW=48
+    if test ! -z $2 ; then
+        REXW=$(expr $REXW + $2)
+    fi
+    write_u8 $REXW
     write_u8 d1
-    write_bits_8 11100110
+    write_bits_8 "11100${1}"
 }
 
-shl_r15_once () {
-    write_u8 49
+shr_u64_once () {
+    REXW=48
+    if test ! -z $2 ; then
+        REXW=$(expr $REXW + $2)
+    fi
+    write_u8 $REXW
     write_u8 d1
-    write_bits_8 11100111
-}
-
-shl_r15_imm8 () {
-    write_u8 49
-    write_u8 c1
-    write_bits_8 11100111
-    write_u8 $1
+    write_bits_8 "11111${1}"
 }
 
 add_ebx_imm8 () {
@@ -234,41 +200,36 @@ mov_esi_r13d () {
     write_u8 8b
     write_bits_8 11110101
 }
+mov_rsi_rax () {
+    write_u8 48
+    write_u8 8b
+    write_bits_8 11110000
+}
+mov_rsi_r12 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11110100
+}
+mov_rsi_r13 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11110101
+}
 mov_rsi_r14 () {
     write_u8 49
     write_u8 8b
     write_bits_8 11110110
+}
+mov_rsi_r15 () {
+    write_u8 49
+    write_u8 8b
+    write_bits_8 11110111
 }
 mov_rsi_imm64 () {
     write_u8 48
     write_bits_8 10111110
     write_u64 $1 $2 $3 $4 $5 $6 $7 $8
 }
-
-mov_rsi_rax () {
-    write_u8 48
-    write_u8 8b
-    write_bits_8 11110000
-}
-
-mov_rsi_r12 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11100110
-}
-
-mov_rsi_r14 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11110110
-}
-
-mov_rsi_r15 () {
-    write_u8 49
-    write_u8 8b
-    write_bits_8 11110111
-}
-
 mov_r15_rsi () {
     write_u8 44
     write_u8 8b
@@ -779,7 +740,6 @@ BUFF=$INST
 # 2         - unable to read file
 # 3         - invalid token encountered
 
-
 # .begin
 # jump to entry
 jmp_imm32 00 00 02 01 # >entry
@@ -879,7 +839,7 @@ ret
 #   rsi | TOKEN.beg
 
 cmp_r13_r14
-jcc_nq_imm8 0d              # >next_token_begin
+jcc_l_imm8 0d               # >next_token_begin
 
 mov_eax_imm32 00 00 00 50   # TOKEN.token_kind [80] EOF
 mov_rsi_r14
@@ -1073,7 +1033,7 @@ inc_r14
 # .next_token_return
 ret
 
-# ======= MAIN ========
+# ======= MAIN ================================
 
 # .entry
 # args:
@@ -1170,19 +1130,61 @@ syscall
 # };
 #
 # struct Token [u64] {
-#   TokenKind kind;
-#   u32 beg;
+#   TokenKind kind;     | rax
+#   u32 beg;            | rsi
 # };
-#
+
+# ============== ELF_HEADER ============================
+
+mov_rsi_r13
+shl_u64_imm8 $si 04
+call_imm32 ff ff fd 63 # >allocate
+
+xor_edi_edi
+# mov_ea_rax_base_rdi_imm64
+
+# ============== PARSING / CODE_GEN ====================
 
 xor_r14d_r14d               # current offset in the file
 xor_r15d_r15d               # current line   in the file
 
-# TODO: parsing
+# struct Var  {
+#   u64     flags;
+#   // 1    = is_ptr 
+#   // 2    = is_arr
+#   // 4    = is_non
+#   // 8    = is_prm
+#   // 32.. = array_len
+#   Token   type;
+#   Token   ident;
+# }
+# struct Func {
+#   Var     *args;
+#   u64     len;
+#   u64     cap;
+#   u64     byte_offset;
+#   Var     return_type;
+# }
+#
+# do {
+#   iden = next_token
+#   assert iden.kind == ident
+#
+#   next = next_token
+#   if next.kind == L_PAREN {
+#       parse_arguments
+#       parse_body
+#   } else if next.kind == L_BRACE {
+#
+#   } else {
+#       error : expected l_paren or l_brace but got x on line y
+#   }
+# } while token.kind != EOF
 
-call_imm32 ff ff fd d9      # >next_token
+call_imm32 ff ff fd cb      # >next_token
 
-mov_rdi_r14
+
+mov_rdi_rax
 mov_eax_imm32 00 00 00 3c
 syscall
 

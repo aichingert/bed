@@ -4,7 +4,7 @@ import subprocess
 PAGE_SIZE = 4096
 
 def helper_align_to_page_size(n):
-    return ((n + PAGE_SIZE) & (~(PAGE_SIZE - 1)))
+    return ((n + PAGE_SIZE - 1) & (~(PAGE_SIZE - 1)))
 
 def helper_parse_args(call, name, n):
     args = call[len(name) + 1:].split(',')
