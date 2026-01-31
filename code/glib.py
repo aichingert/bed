@@ -3,7 +3,23 @@ import sys
 def is_ident_start(char):
     return char.isalpha() or char == '_'
 
-found = {
+def is_ident(char):
+    return char.isalnum() or char == '_'
+
+def skip_to_next_line(pos, source):
+    while pos < len(source) and source[pos] != '\n':
+        pos += 1
+    pos += 1
+    return pos
+
+def format_binary_string_to_hex_with_spaces(binstr):
+    formated_hex_str = ""
+    for i in range(len(binstr) // 8):
+        bin_as_hex = "{:02x}".format(int(binstr[i * 8 : (i + 1) * 8], 2))
+        formated_hex_str += ' ' + bin_as_hex
+    return formated_hex_str
+
+known_func_sizes = {
     "write_bits_8": 1,
     "write_u8": 1,
     "write_u16": 2,
@@ -24,105 +40,101 @@ def get_byte_size_from_str_end(s):
         case "64":  return 8
         case _: return 0
 
+def get_bytes_from_func(func_ident, source):
+    if func_ident in known_func_sizes:
+        return known_func_sizes[func_ident]
 
-def get_bytes_from_func(fn, source):
-    if fn in found:
-        return found[fn]
-
-    bts = 0
     pos = 0
-    fln = len(fn)
+    size = 0
 
-    while pos + fln < len(source):
-        # bad but this is python so anyway
-        if source[pos:pos + fln] != fn:
+    while pos < len(source):
+        if not is_ident_start(source[pos]):
             pos += 1
             continue
 
-        pos += fln
-        while pos < len(source) and source[pos] == ' ':
+        func_it = 0
+        found_ident = True
+
+        while pos < len(source) and is_ident(source[pos]):
             pos += 1
 
-        # check if this is a function definition or a call
-        if pos < len(source) and source[pos] != "()"[0]:
-            continue
-        # advance until the function body starts
-        while pos < len(source) and source[pos] != "{}"[0]:
+            if not found_ident or func_it >= len(func_ident) or source[pos - 1] != func_ident[func_it]:
+                found_ident = False
+                continue
+            func_it += 1
+
+        if not found_ident or func_it < len(func_ident):
             pos += 1
+            continue
+
+        while pos < len(source) and source[pos] == ' ': pos += 1
+        if pos + 1 >= len(source) or source[pos] + source[pos + 1] != "()": continue
+        while pos < len(source) and source[pos] != "{}"[0]: pos += 1
+
+        # NOTE: function position found
         break
 
-    brc = 1
+    # NOTE: skipping opening brace
     pos += 1
-    while pos < len(source) and brc > 0:
-        if source[pos] == "{}"[0]:
-            brc += 1
-        if source[pos] == "{}"[1]:
-            brc -= 1
 
-        if is_ident_start(source[pos]):
-            beg = pos
-            while pos < len(source) and source[pos].isalnum() or source[pos] == '_':
-                pos += 1
-            iden = source[beg:pos]
-
-            if iden == "write_zeroes":
-                while pos < len(source) and source[pos] == ' ':
-                    pos += 1
-                num = 0
-                while pos < len(source) and source[pos].isdigit():
-                    num *= 10 + int(source[pos])
-                    pos += 1
-                bts += num
-            else:
-                bts += get_bytes_from_func(iden, source)
-                pos += get_byte_size_from_str_end(iden) * 3
-        else:
+    while pos < len(source) and source[pos] != '}':
+        if not is_ident_start(source[pos]):
             pos += 1
+            continue
 
-    found[fn] = bts
-    return bts
+        beg = pos
+        while pos < len(source) and is_ident(source[pos]): pos += 1
+        instr = source[beg:pos]
 
-def get_label(lbl, offset, source):
-    lbl_start = -1
+        match instr:
+            case "write_zeroes": 
+                while pos < len(source) and not source[pos].isdigit(): pos += 1
+                beg = pos
+                while pos < len(source) and source[pos].isdigit(): pos += 1
+                size += int(source[beg:pos])
+            case _:
+                size += get_bytes_from_func(instr, source)
+                pos = skip_to_next_line(pos, source)
+
+    known_func_sizes[func_ident] = size
+    return size
+
+def get_label(label, offset, source):
     pos = offset
 
-    while pos < len(source) and lbl_start == -1:
-        if source[pos] == '.':
-            beg = pos
+    while pos < len(source):
+        if not source[pos] == '#':
+            pos = skip_to_next_line(pos, source)
+            continue
+
+        while pos < len(source) and source[pos] != '.' and source[pos] != '\n':
             pos += 1
-            while pos < len(source) and (source[pos].isalnum() or source[pos] == '_'):
-                pos += 1
-            
-            if lbl == source[beg:pos]:
-                lbl_start = pos
-            else:
-                pos += 1
-        else:
-            pos += 1
-    return lbl_start
+        if pos == '\n': continue
+
+        beg = pos
+        pos += 1
+        while pos < len(source) and is_ident(source[pos]): pos += 1
+        if label == source[beg:pos]:
+            return pos
+    return -1
 
 def get_bytes_in_range(src, dst, source):
     sum_of_bytes = 0
-    pos = src
-
-    while pos < dst and source[pos] != '\n':
-        pos += 1
+    pos = skip_to_next_line(src, source)
 
     while pos < dst:
         if source[pos] == '#':
-            while pos < len(source) and source[pos] != '\n':
-                pos += 1
-
-        if is_ident_start(source[pos]):
-            beg = pos
-            while source[pos].isalnum() or source[pos] == '_':
-                pos += 1
-
-            if beg != pos:
-                iden = source[beg:pos]
-                sum_of_bytes += get_bytes_from_func(iden, source)
-                pos += 3 * get_byte_size_from_str_end(iden) - 1
-        pos += 1
+            pos = skip_to_next_line(pos, source)
+            continue
+        if not is_ident_start(source[pos]):
+            pos += 1
+            continue
+        
+        beg = pos
+        while pos < len(source) and is_ident(source[pos]):
+            pos += 1
+        sum_of_bytes += get_bytes_from_func(source[beg:pos], source)
+        pos = skip_to_next_line(pos, source)
     return sum_of_bytes
 
 def get_twos_compliment(number):
@@ -145,110 +157,97 @@ def get_twos_compliment(number):
             binarr[i + 1] += 1
 
     binstr = "".join(str(x) for x in reversed(binarr))
-    newnum = ""
+    return binstr
 
-    for i in range(4):
-        bin_as_hex = "{:02x}".format(int(binstr[i * 8 : (i + 1) * 8], 2))
-        newnum += ' ' + bin_as_hex
-
-    return newnum
-
-def update_addresses(source):
-    lbl = {}
-    que = []
+def update_jumps(source):
     pos = get_label(".begin", 0, source)
-    bts = 0
-    adr = 0
+    assert pos > 0, "error [glib]: expected begin label at the start of the instructions"
+    pos = skip_to_next_line(pos, source)
 
-    while pos < len(source) and source[pos] != '\n':
-        pos += 1
+    end = get_label(".shell_script_write_final_output", pos, source)
+    assert end > 0, "error [glib]: expected end label at the end of the instructions"
+    sum_of_bytes = 0
 
-    while pos < len(source):
+    jumps_to_update = []
+    labels_encounter = {}
+
+    while pos < end:
         if source[pos] == '#':
-            while pos < len(source) and source[pos] != '\n':
-                if source[pos] == '.':
-                    pos += 1
-                    beg = pos
-                    while pos < len(source) and (source[pos].isalnum() or source[pos] == '_'):
-                        pos += 1
-                    lbl[source[beg:pos]] = bts
-                else:
-                    pos += 1
+            pos += 1
+            while pos < end and source[pos] == ' ' and source[pos] != '\n': 
+                pos += 1
+            if source[pos] != '.':
+                pos = skip_to_next_line(pos, source)
+                continue
+            pos += 1
+            beg = pos
+            while pos < end and is_ident(source[pos]): pos += 1
+
+            label = source[beg:pos]
+            labels_encounter[label] = sum_of_bytes
+            pos = skip_to_next_line(pos, source)
+            continue
 
         if not is_ident_start(source[pos]):
             pos += 1
             continue
+    
+        beg = pos
+        while pos < end and is_ident(source[pos]): 
+            pos += 1
+
+        instr = source[beg:pos]
+        jmp_imm_val_start = pos
+        sum_of_bytes += get_bytes_from_func(instr, source)
+
+        # TODO: fix this when using _u16_ registers
+        if "_u32_" in instr:
+            # NOTE: adjusting write_u8 41
+            # since it is conditionaly if 
+            # one of the r8-r15 registers
+            # is being used by the instr
+            while pos < end and source[pos] != '$' and source[pos] != '\n': pos += 1
+            if pos + 1 < end and source[pos] != '\n' and source[pos + 1] != 'r':
+                sum_of_bytes -= 1
+
+        while pos < end and source[pos] != '#' and source[pos] != '\n': pos += 1
+        if pos < end and source[pos] == '\n': continue
+        pos += 1
+        while pos < end and source[pos] == ' ' and source[pos] != '\n': pos += 1
+        if pos < end and (source[pos] != '>' or source[pos] == '\n'): continue
+        pos += 1
 
         beg = pos
-        while pos < len(source) and (source[pos].isalnum() or source[pos] == '_'):
+        while pos < end and is_ident(source[pos]):
             pos += 1
 
-        iden = source[beg:pos]
-        bts += get_bytes_from_func(iden, source)
-        skip = 0
+        label = source[beg:pos]
+        jumps_to_update.append((instr, label, sum_of_bytes, jmp_imm_val_start))
+        pos = skip_to_next_line(pos, source)
 
-        if iden == "call_imm32" or iden == "jmp_imm32" or iden.startswith("jcc_"):
-            arg = pos
-            while pos < len(source) and source[pos] != '>' and source[pos] != '\n':
-                pos += 1
-            if pos < len(source) and source[pos] == '\n':
-                pos += 1
-                continue
-            pos += 1
+    for it in jumps_to_update:
+        ident, label, previous_bytes, file_insert_offset = it
 
-            beg = pos
-            while pos < len(source) and (source[pos].isalnum() or source[pos] == '_'):
-                pos += 1
-            
-            func = source[beg:pos]
+        byts = get_byte_size_from_str_end(ident)
+        bits = byts * 8
+        diff = labels_encounter[label] - previous_bytes
+        bins = ""
+        trim = ""
 
-            if iden == "call_imm32":
-                assert func in lbl, "error [glib]: calling non existend function `" + func + "`"
-            else:
-                que.append([iden, bts, func, arg])
-                continue
+        if diff < 0: 
+            bins = get_twos_compliment(abs(diff))
+            trim = '1'
+        else:        
+            bins = "{:032b}".format(diff)
+            trim = '0'
 
-            offset = bts - lbl[func]
-            newoff = get_twos_compliment(offset)
-            
-            adr += 1
-            source = source[:arg] + newoff + source[arg + len(newoff):]
-        else:
-            skip_imm_val = 3 * get_byte_size_from_str_end(iden)
-            pos += skip_imm_val
-            if skip_imm_val == 0:
-                pos += 1
+        unused = bins[:32 - bits]
+        assert len(unused.lstrip(trim)) == 0, "error [glib]: {0} instruction is trimming jump address".format(ident)
 
-    for entry in que:
-        [eiden, ebytes, elbl, efile] = entry
-        assert elbl in lbl, "error [glib]: label `{}` not found".format(elbl)
-
-        offset = lbl[elbl] - ebytes
-        newoff = ""
-
-        if offset < 0:
-            newoff = get_twos_compliment(abs(offset))
-        else:
-            binstr = "{:032b}".format(offset)
-            for i in range(4):
-                bin_as_hex = "{:02x}".format(int(binstr[i * 8 : (i + 1) * 8], 2))
-                newoff += ' ' + bin_as_hex
-        adr += 1
-
-        if eiden.endswith("imm8"):
-            newoff = newoff[9:]
-        elif eiden.endswith("imm16"):
-            newoff = newoff[6:]
-        elif eiden.endswith("imm32"):
-            newoff = newoff
-        elif eiden.endswith("imm64"):
-            assert False, "error [glib]: 64 bit jumps are not yet implemented"
-        else:
-            assert False, "error [glib]: unknown jump size {}".format(eiden)
-
-        source = source[:efile] + newoff + source[efile + len(newoff):]
-
-    return source, adr
+        source = source[:file_insert_offset] +\
+            format_binary_string_to_hex_with_spaces(bins[32 - bits:]) +\
+            source[file_insert_offset + 3 * byts:]
+    return len(jumps_to_update), source
 
 def main():
     sys.argv.pop(0)
@@ -260,6 +259,10 @@ def main():
 
     f = open(file, "r+")
     source = f.read()
+
+    # TODO: if this script gets slow one can compute the size of all
+    # functions before running a command therfore only one pass has 
+    # to be made on the function size parsing
 
     match sys.argv[0]:
         case "-r" | "--range":
@@ -280,17 +283,16 @@ def main():
             for i in range(1, len(sys.argv)):
                 sum += get_bytes_from_func(sys.argv[i], source)
             print(f"bytes: {sum} | {sum:02X}")
-        case "-c" | "--fix-calls":
-            source, adr = update_addresses(source)
+        case "-u" | "--update_calls":
+            updated, source = update_jumps(source)
 
+            print(source)
             f = open(file, "w")
-            if adr > 1:
-                print(f"glib: updated {adr} addresses")
-            else:
-                print(f"glib: updated {adr} addresses")
-
+            if updated > 1: print(f"glib: updated {updated} addresses")
+            else:           print(f"glib: updated {updated} addresses")
             f.write(source)
             f.truncate()
+
         case "-t" | "--two-complement":
             assert len(sys.argv) > 1, "error [glib]: need number for two's compliment"
             print(get_twos_compliment(int(sys.argv[1])))

@@ -141,58 +141,53 @@ shr_u64_once () {
     write_bits_8 "11111${1}"
 }
 
-add_ebx_imm8 () {
+add_u32_imm8 () {
+    if test ! -z $3 ; then
+        write_u8 41
+    fi
     write_u8 83
-    write_bits_8 11000011
-    write_u8 $1
+    write_bits_8 "11000${1}"
+    write_u8 $2
 }
 
-add_rsi_imm32 () {
-    write_u8 48
+add_u32_imm32 () {
+    if test ! -z $6 ; then
+        write_u8 41
+    fi
     write_u8 81
-    write_bits_8 11000110
-    write_u32 $1 $2 $3 $4
+    write_bits_8 "11000${1}"
+    write_u32 $2 $3 $4 $5
 }
 
-and_rax_imm32 () {
-    write_u8 48
-    write_u8 25
-    write_u32 $1 $2 $3 $4
-}
-
-and_rcx_imm32 () {
-    write_u8 48
+add_u64_imm32 () {
+    REXW=48
+    if test ! -z $6 ; then
+        REXW=$(expr $REXW + $6)
+    fi
+    write_u8 $REXW
     write_u8 81
-    write_bits_8 11100001
-    write_u32 $1 $2 $3 $4
+    write_bits_8 "11000${1}"
+    write_u32 $2 $3 $4 $5
 }
 
-and_rsi_imm32 () {
-    write_u8 48
+and_u32_imm32 () {
+    if test ! -z $6 ; then
+        write_u8 41
+    fi
     write_u8 81
-    write_bits_8 11100110
-    write_u32 $1 $2 $3 $4
+    write_bits_8 "11100${1}"
+    write_u32 $2 $3 $4 $5
 }
 
-add_r13d_imm32 () {
-    write_u8 41
+and_u64_imm32 () {
+    REXW=48
+    if test ! -z $6 ; then
+        REXW=$(expr $REXW + $6)
+    fi
+    write_u8 $REXW
     write_u8 81
-    write_bits_8 11000101
-    write_u32 $1 $2 $3 $4
-}
-
-add_r15_imm32 () {
-    write_u8 49
-    write_u8 81
-    write_bits_8 11000111
-    write_u32 $1 $2 $3 $4
-}
-
-and_r13d_imm32 () {
-    write_u8 41
-    write_u8 81
-    write_bits_8 11100101
-    write_u32 $1 $2 $3 $4
+    write_bits_8 "11100${1}"
+    write_u32 $2 $3 $4 $5
 }
 
 mov_esi_r13d () {
@@ -742,7 +737,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 02 01 # >entry
+jmp_imm32 00 00 01 ff # >entry
 
 # helper functions
 
@@ -755,8 +750,8 @@ jmp_imm32 00 00 02 01 # >entry
 #   r8  | fd         no file mapping so -1
 #   r9  | pgoff     idk 0
 xor_edi_edi
-add_rsi_imm32 00 00 0f ff
-and_rsi_imm32 ff ff f0 00
+add_u32_imm32 $si 00 00 0f ff
+and_u32_imm32 $si ff ff f0 00
 mov_edx_imm32 00 00 00 03
 mov_r10d_imm32 00 00 00 22
 mov_r8d_imm32 ff ff ff ff
@@ -1038,6 +1033,7 @@ ret
 # .entry
 # args:
 #   rsp | holds argc, argv and environ probably
+
 mov_rdi_ea_rsp_disp8 00
 cmp_rdi_imm8 02
 jcc_q_imm8 0c
@@ -1079,7 +1075,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_esi_r13d
-call_imm32 ff ff fd 89  # >allocate
+call_imm32 ff ff fd 8b  # >allocate
 mov_r12_rax             # r12       file ptr
 
 # read file
@@ -1138,9 +1134,9 @@ syscall
 
 mov_rsi_r13
 shl_u64_imm8 $si 04
-call_imm32 ff ff fd 63 # >allocate
+call_imm32 ff ff fd 65 # >allocate
 
-xor_edi_edi
+# xor_edi_edi
 # mov_ea_rax_base_rdi_imm64
 
 # ============== PARSING / CODE_GEN ====================
@@ -1181,12 +1177,14 @@ xor_r15d_r15d               # current line   in the file
 #   }
 # } while token.kind != EOF
 
-call_imm32 ff ff fd cb      # >next_token
+call_imm32 ff ff fd cd      # >next_token
 
 
 mov_rdi_rax
 mov_eax_imm32 00 00 00 3c
 syscall
+
+# .shell_script_write_final_output
 
 BUFF=$FILE
 write_ph $SIZE
