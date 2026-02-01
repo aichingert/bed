@@ -213,6 +213,19 @@ mov_u32_u32 () {
     write_bits_8 "11${1}${2}"
 }
 
+mov_u64_imm64 () {
+    reg="${1}"
+    shift
+
+    REX=48
+    if test ! -z $9 ; then
+        REX=49
+    fi
+    write_u8 $REX
+    write_bits_8 "10111${reg}" # +rd
+    write_u64 $1 $2 $3 $4 $5 $6 $7 $8
+}
+
 mov_u64_u64 () {
     REX=48
     if test ! -z $3 ; then
@@ -229,24 +242,12 @@ mov_u64_u64 () {
     write_bits_8 "11${1}${2}"
 }
 
-mov_rsi_imm64 () {
-    write_u8 48
-    write_bits_8 10111110
-    write_u64 $1 $2 $3 $4 $5 $6 $7 $8
-}
-
 xor_self_u32 () {
     if test ! -z $2 ; then
         write_u8 45
     fi
     write_u8 33
     write_bits_8 "11${1}${1}"
-}
-
-mov_rdx_imm64 () {
-    write_u8 48
-    write_bits_8 10111010
-    write_u64 $1 $2 $3 $4 $5 $6 $7 $8
 }
 
 mov_rax_ea_r14 () {
@@ -881,8 +882,8 @@ syscall
 # get file descriptor
 mov_u32_imm32 $ax 00 00 00 02
 mov_rdi_ea_rsp_disp8 10 # argv[1]
-mov_rsi_imm64 00 00 00 00 00 00 00 02
-mov_rdx_imm64 00 00 00 00 00 00 01 a4
+mov_u64_imm64 $si 00 00 00 00 00 00 00 02
+mov_u64_imm64 $dx 00 00 00 00 00 00 01 a4
 syscall
 
 cmp_rax_imm8 00
