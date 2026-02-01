@@ -201,8 +201,12 @@ mov_u32_imm32 () {
 
 mov_u32_u32 () {
     if test ! -z $3 ; then
-        REX=41
-        REX=$(expr $REX + $3)
+        REX=45
+        if test $3 -eq "0" ; then
+            REX=44
+        elif test $3 -eq "1" ; then
+            REX=41
+        fi
         write_u8 $REX
     fi
     write_u8 8b
@@ -213,9 +217,11 @@ mov_u64_u64 () {
     REX=48
     if test ! -z $3 ; then
         if test $3 -eq "0" ; then
+            REX="4c"
+        elif test $3 -eq "1" ; then
             REX="49"
         else
-            REX="4c"
+            REX="4d"
         fi
     fi
     write_u8 $REX
@@ -664,10 +670,10 @@ ret
 #   rsi | TOKEN.beg
 
 cmp_r13_r14
-jcc_l_imm8 0e                   # >next_token_begin
+jcc_g_imm8 0e                   # >next_token_begin
 
 mov_u32_imm32 $ax 00 00 00 50   # TOKEN.token_kind [80] EOF
-mov_u64_u64 $si $r14 0
+mov_u64_u64 $si $r14 1
 jmp_imm32 00 00 01 8c           # >next_token_return
 
 # .next_token_begin
@@ -697,7 +703,7 @@ cmovq_eax_esi
 cmp_eax_esi
 jcc_q_imm32 ff ff ff d4 # >next_token_skip_whitespace_newline_and_tabs_beg
 
-mov_u64_u64 $si $r14 0  # rsi = TOKEN.beg
+mov_u64_u64 $si $r14 1  # rsi = TOKEN.beg
 
 call_imm32 ff ff ff 71  # >is_ident_start
 cmp_eax_imm8 01
@@ -866,7 +872,7 @@ ret
 
 mov_rdi_ea_rsp_disp8 00
 cmp_rdi_imm8 02
-jcc_q_imm8 0c
+jcc_q_imm8 0e
 # TODO: error no file provided
 mov_u32_imm32 $di 00 00 00 01
 mov_u32_imm32 $ax 00 00 00 3c
@@ -880,13 +886,13 @@ mov_rdx_imm64 00 00 00 00 00 00 01 a4
 syscall
 
 cmp_rax_imm8 00
-jcc_ns_imm8 0c
+jcc_ns_imm8 0e
 # TODO: error unable to read file
 mov_u32_imm32 $di 00 00 00 02
 mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
-mov_u64_u64 $r14 $ax 1  # fd
+mov_u64_u64 $r14 $ax 0  # fd
 
 # get file size
 mov_u64_u64 $di $ax
@@ -895,28 +901,28 @@ mov_u32_imm32 $dx 00 00 00 02
 mov_u32_imm32 $ax 00 00 00 08
 syscall
 
-mov_u64_u64 $r13 $ax 1  # file_size
+mov_u64_u64 $r13 $ax 0  # file_size
 
-mov_u64_u64 $di $r14 0
+mov_u64_u64 $di $r14 1
 xor_self_u32 $si
 xor_self_u32 $dx
 mov_u32_imm32 $ax 00 00 00 08
 syscall
 
 # allocate file size aligned to page size
-mov_u32_u32 $si $r13 0
+mov_u32_u32 $si $r13 1
 call_imm32 ff ff fd 6e  # >allocate
-mov_u64_u64 $r12 $ax 1  # r12 file_ptr
+mov_u64_u64 $r12 $ax 0  # r12 file_ptr
 
 # read file
-mov_u64_u64 $di $r14 0
+mov_u64_u64 $di $r14 1
 mov_u64_u64 $si $ax
-mov_u64_u64 $dx $r13 0
+mov_u64_u64 $dx $r13 1
 xor_self_u32 $ax
 syscall
 
 # close file
-mov_u64_u64 $di $r14 0
+mov_u64_u64 $di $r14 1
 mov_u32_imm32 $ax 00 00 00 03
 syscall
 
@@ -962,9 +968,9 @@ syscall
 
 # ============== ELF_HEADER ============================
 
-mov_u64_u64 $si $r13 0
-shl_u64_imm8 $si 04
-call_imm32 ff ff fd 47 # >allocate
+# mov_u64_u64 $si $r13 1
+# shl_u64_imm8 $si 04
+# call_imm32 ff ff fd 2c # >allocate
 
 # xor_edi_edi
 # mov_ea_rax_base_rdi_imm64
@@ -1007,7 +1013,7 @@ xor_self_u32 $r15 1             # current line   in the file
 #   }
 # } while token.kind != EOF
 
-call_imm32 ff ff fd b0      # >next_token
+call_imm32 ff ff fd bc      # >next_token
 
 mov_u64_u64 $di $ax
 mov_u32_imm32 $ax 00 00 00 3c

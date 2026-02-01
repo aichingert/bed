@@ -207,6 +207,7 @@ def update_jumps(source):
 
         instr = source[beg:pos]
         jmp_imm_val_start = pos
+        prv = sum_of_bytes
         sum_of_bytes += get_bytes_from_func(instr, source)
 
         # TODO: fix this when using _u16_ registers
@@ -215,18 +216,21 @@ def update_jumps(source):
             # since it is conditionaly if 
             # one of the r8-r15 registers
             # is being used by the instr
+            tmp = pos
+            while tmp < len(source) and source[tmp] != '\n':
+                tmp += 1
+
             off, reg = get_register(pos, source)
             new, rem = get_register(off, source)
 
             if reg[0] != 'r' and (rem == None or rem[0] != 'r'):
                 sum_of_bytes -= 1
-            pos = new
 
         while pos < end and source[pos] != '#' and source[pos] != '\n': pos += 1
         if pos < end and source[pos] == '\n': continue
         pos += 1
         while pos < end and source[pos] == ' ' and source[pos] != '\n': pos += 1
-        if pos < end and (source[pos] != '>' or source[pos] == '\n'): continue
+        if pos < end and source[pos] != '>': continue
         pos += 1
 
         beg = pos
