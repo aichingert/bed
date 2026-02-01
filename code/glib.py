@@ -12,6 +12,15 @@ def skip_to_next_line(pos, source):
     pos += 1
     return pos
 
+def get_register(pos, source):
+    while pos < len(source) and source[pos] != '$' and source[pos] != '\n': pos += 1
+    if pos < len(source) and source[pos] == '$':
+        pos += 1
+        beg = pos
+        while pos < len(source) and is_ident(source[pos]): pos += 1
+        return pos, source[beg:pos]
+    return pos, None
+
 def format_binary_string_to_hex_with_spaces(binstr):
     formated_hex_str = ""
     for i in range(len(binstr) // 8):
@@ -201,14 +210,17 @@ def update_jumps(source):
         sum_of_bytes += get_bytes_from_func(instr, source)
 
         # TODO: fix this when using _u16_ registers
-        if "_u32_" in instr:
+        if "_u32" in instr:
             # NOTE: adjusting write_u8 41
             # since it is conditionaly if 
             # one of the r8-r15 registers
             # is being used by the instr
-            while pos < end and source[pos] != '$' and source[pos] != '\n': pos += 1
-            if pos + 1 < end and source[pos] != '\n' and source[pos + 1] != 'r':
+            off, reg = get_register(pos, source)
+            new, rem = get_register(off, source)
+
+            if reg[0] != 'r' and (rem == None or rem[0] != 'r'):
                 sum_of_bytes -= 1
+            pos = new
 
         while pos < end and source[pos] != '#' and source[pos] != '\n': pos += 1
         if pos < end and source[pos] == '\n': continue
@@ -286,7 +298,6 @@ def main():
         case "-u" | "--update_calls":
             updated, source = update_jumps(source)
 
-            print(source)
             f = open(file, "w")
             if updated > 1: print(f"glib: updated {updated} addresses")
             else:           print(f"glib: updated {updated} addresses")

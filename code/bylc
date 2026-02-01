@@ -567,7 +567,7 @@ BUFF=$INST
 
 # .begin
 # jump to entry
-jmp_imm32 00 00 02 1a # >entry
+jmp_imm32 00 00 02 14 # >entry
 
 # helper functions
 
@@ -622,7 +622,7 @@ ret
 # return:
 #   rax | bool
 xor_self_u32 $ax
-call_imm32 ff ff ff d9  # >is_ident_start
+call_imm32 ff ff ff db  # >is_ident_start
 cmp_eax_imm8 01
 jcc_q_imm8 0c           # >is_ident_ret
 
@@ -668,7 +668,7 @@ jcc_l_imm8 0e                   # >next_token_begin
 
 mov_u32_imm32 $ax 00 00 00 50   # TOKEN.token_kind [80] EOF
 mov_u64_u64 $si $r14 0
-jmp_imm32 00 00 01 8e           # >next_token_return
+jmp_imm32 00 00 01 8c           # >next_token_return
 
 # .next_token_begin
 jmp_imm8 03             
@@ -695,18 +695,18 @@ cmovq_eax_esi
 cmp_edi_imm8 09
 cmovq_eax_esi
 cmp_eax_esi
-jcc_q_imm32 ff ff ff d3 # >next_token_skip_whitespace_newline_and_tabs_beg
+jcc_q_imm32 ff ff ff d4 # >next_token_skip_whitespace_newline_and_tabs_beg
 
 mov_u64_u64 $si $r14 0  # rsi = TOKEN.beg
 
-call_imm32 ff ff ff 6d  # >is_ident_start
+call_imm32 ff ff ff 71  # >is_ident_start
 cmp_eax_imm8 01
-jcc_nq_imm8 1a          # >next_token_check_number
+jcc_nq_imm8 19          # >next_token_check_number
 
 # .next_token_iterate_ident
 inc_r14
 movzx_edi_ea_r12_base_r14
-call_imm32 ff ff ff 7a  # >is_ident
+call_imm32 ff ff ff 7d  # >is_ident
 cmp_eax_imm8 01
 jcc_q_imm8 ee           # >next_token_iterate_ident
 # .next_token_iterate_ident_end
@@ -716,14 +716,14 @@ jmp_imm32 00 00 01 38   # >next_token_return
 
 # .next_token_check_number
 
-call_imm32 ff ff ff 82  # >is_number
+call_imm32 ff ff ff 85  # >is_number
 cmp_eax_imm8 01
 jcc_nq_imm8 1d          # >next_token_check_single_chars
 
 # .next_token_iterate_number
 inc_r14
 movzx_edi_ea_r12_base_r14
-call_imm32 ff ff ff 70  # >is_number
+call_imm32 ff ff ff 73  # >is_number
 cmp_eax_imm8 01
 jcc_q_imm8 ee           # >next_token_iterate_number
 # .next_token_iterate_number_end
@@ -864,10 +864,6 @@ ret
 # args:
 #   rsp | holds argc, argv and environ probably
 
-mov_u32_imm32 $ax 00 00 00 00
-mov_u32_imm32 $di 00 00 00 01
-syscall
-
 mov_rdi_ea_rsp_disp8 00
 cmp_rdi_imm8 02
 jcc_q_imm8 0c
@@ -909,7 +905,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_u32_u32 $si $r13 0
-call_imm32 ff ff fd 58  # >allocate
+call_imm32 ff ff fd 6e  # >allocate
 mov_u64_u64 $r12 $ax 1  # r12 file_ptr
 
 # read file
@@ -968,7 +964,7 @@ syscall
 
 mov_u64_u64 $si $r13 0
 shl_u64_imm8 $si 04
-call_imm32 ff ff fd 30 # >allocate
+call_imm32 ff ff fd 47 # >allocate
 
 # xor_edi_edi
 # mov_ea_rax_base_rdi_imm64
@@ -1011,7 +1007,7 @@ xor_self_u32 $r15 1             # current line   in the file
 #   }
 # } while token.kind != EOF
 
-call_imm32 ff ff fd 9d      # >next_token
+call_imm32 ff ff fd b0      # >next_token
 
 mov_u64_u64 $di $ax
 mov_u32_imm32 $ax 00 00 00 3c
