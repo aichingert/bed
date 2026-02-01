@@ -471,39 +471,21 @@ jmp_imm32 () {
     write_u32 $1 $2 $3 $4
 }
 
-inc_eax () {
+inc_u32 () {
+    if test ! -z $2 ; then
+        write_u8 41
+    fi
     write_u8 ff
-    write_bits_8 11000000
+    write_bits_8 "11000${1}"
 }
-inc_rax () {
-    write_u8 48
+inc_u64 () {
+    REX=48
+    if test ! -z $2 ; then
+        REX=49
+    fi
+    write_u8 $REX
     write_u8 ff
-    write_bits_8 11000000
-}
-inc_rcx () {
-    write_u8 48
-    write_u8 ff
-    write_bits_8 11000001
-}
-inc_rdx () {
-    write_u8 48
-    write_u8 ff
-    write_bits_8 11000010
-}
-inc_r14 () {
-    write_u8 49
-    write_u8 ff
-    write_bits_8 11000110
-}
-inc_r15 () {
-    write_u8 49
-    write_u8 ff
-    write_bits_8 11000111
-}
-
-inc_ebx () {
-    write_u8 ff
-    write_bits_8 11000011
+    write_bits_8 "11000${1}"
 }
 
 ret () {
@@ -619,7 +601,7 @@ jcc_l_imm8 07 # >is_ident_start_ret
 cmp_edi_imm8 7a # 'z'
 jcc_g_imm8 02 # >is_ident_start_ret
 # .is_ident_start_true
-inc_eax
+inc_u32 $ax
 # .is_ident_start_ret
 ret
 
@@ -640,7 +622,7 @@ cmp_edi_imm8 39
 jcc_g_imm8 02           # >is_ident_ret
 
 # .is_ident_true
-inc_eax
+inc_u32 $ax
 # .is_ident_ret
 ret
 
@@ -655,7 +637,7 @@ jcc_l_imm8 07 # >is_number_ret
 cmp_edi_imm8 39
 jcc_g_imm8 02 # >is_number_ret
 
-inc_eax
+inc_u32 $ax
 # .is_number_ret
 ret
 
@@ -681,7 +663,7 @@ jmp_imm32 00 00 01 8c           # >next_token_return
 jmp_imm8 03             
 
 # .next_token_skip_whitespace_newline_and_tabs_beg
-inc_r14
+inc_u64 $r14 0
 
 # while ch == '\n' or ch == ' ' or ch == '\t' {
 #   if ch == '\n' {
@@ -711,7 +693,7 @@ cmp_eax_imm8 01
 jcc_nq_imm8 19          # >next_token_check_number
 
 # .next_token_iterate_ident
-inc_r14
+inc_u64 $r14 0
 movzx_edi_ea_r12_base_r14
 call_imm32 ff ff ff 7d  # >is_ident
 cmp_eax_imm8 01
@@ -728,7 +710,7 @@ cmp_eax_imm8 01
 jcc_nq_imm8 1d          # >next_token_check_single_chars
 
 # .next_token_iterate_number
-inc_r14
+inc_u64 $r14 0
 movzx_edi_ea_r12_base_r14
 call_imm32 ff ff ff 73  # >is_number
 cmp_eax_imm8 01
@@ -860,7 +842,7 @@ mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
 # .next_token_advance
-inc_r14
+inc_u64 $r14 0
 
 # .next_token_return
 ret
