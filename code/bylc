@@ -12,9 +12,9 @@ set -e
 
 FILE="byl"
 EXPL="../test/test_only_entry_fn.byl"
-INST="$(date +%s)"
-BUFF=$FILE
 SIZE=0
+BYL=""
+INS=""
 
 ax="000"
 cx="001"
@@ -40,72 +40,68 @@ fi
 write_zeroes () {
     for i in $(seq 1 "$1") ; do
         SIZE=$(expr $SIZE + 1)
-        printf '\x00' >> $BUFF
+        printf '\x00'
     done
 }
 
 write_bits_8 () {
     SIZE=$(expr $SIZE + 1)
-    printf "\\$(printf '%o' "$((2#$1))")" >> $BUFF
+    printf "\\$(printf '%o' "$((2#$1))")"
 }
 
 write_u8  () {
     SIZE=$(expr $SIZE + 1)
-    printf "\x$1" >> "$BUFF"
+    printf "\x$1"
 }
 
 write_u16 () {
-    write_u8 $2
-    write_u8 $1
+    SIZE=$(expr $SIZE + 2)
+    printf "\x$2\x$1"
 }
 
 write_u32 () {
-    write_u16 $3 $4
-    write_u16 $1 $2
+    SIZE=$(expr $SIZE + 4)
+    printf "\x$4\x$3\x$2\x$1"
 }
 
 write_u64 () {
-    write_u32 $5 $6 $7 $8
-    write_u32 $1 $2 $3 $4
+    SIZE=$(expr $SIZE + 8)
+    printf "\x$8\x$7\x$6\x$5\x$4\x$3\x$2\x$1"
 }
 
 push_u64 () {
     REX=48
     if test ! -z $2 ; then 
-        REX=$(expr $REX + $2)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 ff
+    write_u16 ff $REX
     write_bits_8 "11110${1}"
 }
 
 pop_u64 () {
     REX=48
     if test ! -z $2 ; then 
-        REX=$(expr $REX + $2)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 8f
+    write_u16 8f $REX
     write_bits_8 "11000${1}"
 }
 
 neg_u64 () {
     REX=48
     if test ! -z $2 ; then
-        REX=$(expr $REX + $2)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 f7
+    write_u8 f7 $REX
     write_bits_8 "11011${1}"
 }
 
 shl_u64_imm8 () {
     REX=48
     if test ! -z $3 ; then
-        REX=$(expr $REX + $3)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 c1
+    write_u16 c1 $REX
     write_bits_8 "11100${1}"
     write_u8 $2
 }
@@ -113,10 +109,9 @@ shl_u64_imm8 () {
 shr_u64_imm8 () {
     REX=48
     if test ! -z $3 ; then
-        REX=$(expr $REX + $3)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 c1
+    write_u16 c1 $REX
     write_bits_8 "11101${1}"
     write_u8 $2
 }
@@ -124,20 +119,18 @@ shr_u64_imm8 () {
 shl_u64_once () {
     REX=48
     if test ! -z $2 ; then
-        REX=$(expr $REX + $2)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 d1
+    write_u16 d1 $REX
     write_bits_8 "11100${1}"
 }
 
 shr_u64_once () {
     REX=48
     if test ! -z $2 ; then
-        REX=$(expr $REX + $2)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 d1
+    write_u16 d1 $REX
     write_bits_8 "11111${1}"
 }
 
@@ -162,10 +155,9 @@ add_u32_imm32 () {
 add_u64_imm32 () {
     REX=48
     if test ! -z $6 ; then
-        REX=$(expr $REX + $6)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 81
+    write_u16 81 $REX
     write_bits_8 "11000${1}"
     write_u32 $2 $3 $4 $5
 }
@@ -182,10 +174,9 @@ and_u32_imm32 () {
 and_u64_imm32 () {
     REX=48
     if test ! -z $6 ; then
-        REX=$(expr $REX + $6)
+        REX=49
     fi
-    write_u8 $REX
-    write_u8 81
+    write_u16 81 $REX
     write_bits_8 "11100${1}"
     write_u32 $2 $3 $4 $5
 }
@@ -236,8 +227,7 @@ mov_u64_u64 () {
             REX=49
         fi
     fi
-    write_u8 $REX
-    write_u8 8b
+    write_u16 8b $REX
     write_bits_8 "11${1}${2}"
 }
 
@@ -250,63 +240,54 @@ xor_self_u32 () {
 }
 
 mov_rax_ea_r14 () {
-    write_u8 49
-    write_u8 8b
+    write_u16 8b 49
     write_bits_8 00000110
 }
 
 mov_rdi_ea_r14 () {
-    write_u8 49
-    write_u8 8b
+    write_u16 8b 49
     write_bits_8 00111110
 }
 
 mov_rax_ea_rcx_disp32 () {
-    write_u8 48
-    write_u8 0f
+    write_u16 0f 48
     write_u8 b6
     write_bits_8 10000001
     write_u32 $1 $2 $3 $4
 }
 
 movzx_eax_ea_r12_base_rbx () {
-    write_u8 41
-    write_u8 0f
+    write_u16 0f 41
     write_u8 b6
     write_bits_8 00000100
     write_bits_8 00011100
 }
 movzx_esi_ea_r12_base_rbx () {
-    write_u8 41
-    write_u8 0f
+    write_u16 0f 41
     write_u8 b6
     write_bits_8 00110100
     write_bits_8 00011100
 }
 movzx_edi_ea_rcx_base_rax () {
-    write_u8 48
-    write_u8 0f
+    write_u16 0f 48
     write_u8 b6
     write_bits_8 00111100
     write_bits_8 00000001
 }
 movzx_edi_ea_r12_base_r14 () {
-    write_u8 43
-    write_u8 0f
+    write_u16 0f 43
     write_u8 b6
     write_bits_8 00111100
     write_bits_8 00110100
 }
 
 mov_rdi_ea_rcx () {
-    write_u8 48
-    write_u8 8b
+    write_u16 8b 48
     write_bits_8 00111001
 }
 
 mov_rdi_ea_rsp_disp8 () {
-    write_u8 48
-    write_u8 8b
+    write_u16 8b 48
     write_bits_8 01111100
     write_bits_8 01100100
     write_u8 $1
@@ -509,6 +490,8 @@ write_ph () {
     write_u64 00 00 00 00 00 00 00 00    # p_align       | has something to do with v_addr and p_offset 
 }
 
+elf () {
+
 # ELF header
 ###############
 write_u32 46 4c 45 7f                # elf identifier
@@ -533,8 +516,9 @@ write_zeroes 2                       # e_shentsize   | not used.
 write_zeroes 2                       # e_shnum       | not used.
 write_zeroes 2                       # e_shstrndx    | not used.
 
-SIZE=0
-BUFF=$INST
+}
+
+ins () {
 
 # Instructions
 ################
@@ -992,14 +976,223 @@ mov_u64_u64 $di $ax
 mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
+
 # .shell_script_write_final_output
 
-BUFF=$FILE
-write_ph $SIZE
-cat $INST >> $FILE
+}
 
-ndisasm -ab64 $INST
-rm $INST
+elf >> $FILE
+SIZE=0
+ins > "ins"
+write_ph $SIZE >> $FILE
+cat "ins" >> $FILE
+
+# BUFF=$FILE
+# write_ph $SIZE
+# cat $INST >> $FILE
+# 
+# ndisasm -ab64 $INST
+# rm $INST
 
 chmod +x $FILE
 ./$FILE $EXPL
