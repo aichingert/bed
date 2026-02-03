@@ -14,7 +14,6 @@ FILE="byl"
 EXPL="../test/test_only_entry_fn.byl"
 SIZE=0
 BYL=""
-INS=""
 
 ax="000"
 cx="001"
@@ -490,7 +489,7 @@ write_ph () {
     write_u64 00 00 00 00 00 00 00 00    # p_align       | has something to do with v_addr and p_offset 
 }
 
-elf () {
+write_elf () {
 
 # ELF header
 ###############
@@ -518,7 +517,7 @@ write_zeroes 2                       # e_shstrndx    | not used.
 
 }
 
-ins () {
+write_ins () {
 
 # Instructions
 ################
@@ -976,223 +975,19 @@ mov_u64_u64 $di $ax
 mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-mov_u64_imm64 $ax 00 00 00 00 00 00 00 00
-
 # .shell_script_write_final_output
 
 }
 
-elf >> $FILE
+write_elf >> $FILE
 SIZE=0
-ins > "ins"
-write_ph $SIZE >> $FILE
-cat "ins" >> $FILE
+INS="$(mktemp)"
 
-# BUFF=$FILE
-# write_ph $SIZE
-# cat $INST >> $FILE
-# 
-# ndisasm -ab64 $INST
-# rm $INST
+write_ins > $INS
+write_ph $SIZE >> $FILE
+cat $INS >> $FILE
+
+ndisasm -ab64 $INS
 
 chmod +x $FILE
 ./$FILE $EXPL
