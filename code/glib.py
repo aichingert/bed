@@ -29,7 +29,7 @@ def format_binary_string_to_hex_with_spaces(binstr):
     return formated_hex_str
 
 known_func_sizes = {
-    "write_bits_8": 1,
+    "write_b8": 1,
     "write_u8": 1,
     "write_u16": 2,
     "write_u32": 4,

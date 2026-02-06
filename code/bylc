@@ -42,95 +42,25 @@ write_zeroes () {
         printf '\x00'
     done
 }
-
-write_bits_8 () {
-    SIZE=$(expr $SIZE + 1)
-    printf "\\$(printf '%o' "$((2#$1))")"
-}
-
 write_u8  () {
     SIZE=$(expr $SIZE + 1)
     printf "\x$1"
 }
-
+write_b8 () {
+    SIZE=$(expr $SIZE + 1)
+    printf "\\$(printf '%o' "$((2#$1))")"
+}
 write_u16 () {
     SIZE=$(expr $SIZE + 2)
     printf "\x$2\x$1"
 }
-
 write_u32 () {
     SIZE=$(expr $SIZE + 4)
     printf "\x$4\x$3\x$2\x$1"
 }
-
 write_u64 () {
     SIZE=$(expr $SIZE + 8)
     printf "\x$8\x$7\x$6\x$5\x$4\x$3\x$2\x$1"
-}
-
-push_u64 () {
-    REX=48
-    if test ! -z $2 ; then 
-        REX=49
-    fi
-    write_u16 ff $REX
-    write_bits_8 "11110${1}"
-}
-
-pop_u64 () {
-    REX=48
-    if test ! -z $2 ; then 
-        REX=49
-    fi
-    write_u16 8f $REX
-    write_bits_8 "11000${1}"
-}
-
-neg_u64 () {
-    REX=48
-    if test ! -z $2 ; then
-        REX=49
-    fi
-    write_u8 f7 $REX
-    write_bits_8 "11011${1}"
-}
-
-shl_u64_imm8 () {
-    REX=48
-    if test ! -z $3 ; then
-        REX=49
-    fi
-    write_u16 c1 $REX
-    write_bits_8 "11100${1}"
-    write_u8 $2
-}
-
-shr_u64_imm8 () {
-    REX=48
-    if test ! -z $3 ; then
-        REX=49
-    fi
-    write_u16 c1 $REX
-    write_bits_8 "11101${1}"
-    write_u8 $2
-}
-
-shl_u64_once () {
-    REX=48
-    if test ! -z $2 ; then
-        REX=49
-    fi
-    write_u16 d1 $REX
-    write_bits_8 "11100${1}"
-}
-
-shr_u64_once () {
-    REX=48
-    if test ! -z $2 ; then
-        REX=49
-    fi
-    write_u16 d1 $REX
-    write_bits_8 "11111${1}"
 }
 
 add_u32_imm8 () {
@@ -138,26 +68,24 @@ add_u32_imm8 () {
         write_u8 41
     fi
     write_u8 83
-    write_bits_8 "11000${1}"
+    write_b8 "11000${1}"
     write_u8 $2
 }
-
 add_u32_imm32 () {
     if test ! -z $6 ; then
         write_u8 41
     fi
     write_u8 81
-    write_bits_8 "11000${1}"
+    write_b8 "11000${1}"
     write_u32 $2 $3 $4 $5
 }
-
 add_u64_imm32 () {
     REX=48
     if test ! -z $6 ; then
         REX=49
     fi
     write_u16 81 $REX
-    write_bits_8 "11000${1}"
+    write_b8 "11000${1}"
     write_u32 $2 $3 $4 $5
 }
 
@@ -166,151 +94,22 @@ and_u32_imm32 () {
         write_u8 41
     fi
     write_u8 81
-    write_bits_8 "11100${1}"
+    write_b8 "11100${1}"
     write_u32 $2 $3 $4 $5
 }
-
 and_u64_imm32 () {
     REX=48
     if test ! -z $6 ; then
         REX=49
     fi
     write_u16 81 $REX
-    write_bits_8 "11100${1}"
+    write_b8 "11100${1}"
     write_u32 $2 $3 $4 $5
 }
 
-mov_u32_imm32 () {
-    if test ! -z $6 ; then
-        write_u8 41
-    fi
-    write_u8 c7
-    write_bits_8 "11000${1}"
-    write_u32 $2 $3 $4 $5
-}
-
-mov_u32_u32 () {
-    if test ! -z $3 ; then
-        REX=45
-        if test $3 -eq "0" ; then
-            REX=44
-        elif test $3 -eq "1" ; then
-            REX=41
-        fi
-        write_u8 $REX
-    fi
-    write_u8 8b
-    write_bits_8 "11${1}${2}"
-}
-
-mov_u64_imm64 () {
-    reg="${1}"
-    shift
-
-    REX=48
-    if test ! -z $9 ; then
-        REX=49
-    fi
-    write_u8 $REX
-    write_bits_8 "10111${reg}" # +rd
-    write_u64 $1 $2 $3 $4 $5 $6 $7 $8
-}
-
-mov_u64_u64 () {
-    REX=48
-    if test ! -z $3 ; then
-        REX=4d
-        if test $3 -eq "0" ; then
-            REX=4c
-        elif test $3 -eq "1" ; then
-            REX=49
-        fi
-    fi
-    write_u16 8b $REX
-    write_bits_8 "11${1}${2}"
-}
-
-xor_self_u32 () {
-    if test ! -z $2 ; then
-        write_u8 45
-    fi
-    write_u8 33
-    write_bits_8 "11${1}${1}"
-}
-
-mov_u64_ea_u64 () {
-    REX=48
-    if test ! -z $3 ; then
-        REX=4d
-        if test $3 -eq "0" ; then
-            REX=4c
-        elif test $3 -eq "1" ; then
-            REX=49
-        fi
-    fi
-    write_u16 8b $REX
-    write_bits_8 "00${1}${2}"
-}
-
-
-mov_u64_ea_u64_disp8() {
-    REX=48
-    if test ! -z $4 ; then
-        REX=4d
-        if test $4 -eq "0" ; then
-            REX=4c
-        elif test $4 -eq "1" ; then
-            REX=49
-        fi
-    fi
-    write_u16 8b $REX
-    write_bits_8 "01${1}${2}"
-    write_u8 $3
-}
-mov_u64_ea_u64_disp32 () {
-    REX=48
-    if test ! -z $7 ; then
-        REX=4d
-        if test $7 -eq "0" ; then
-            REX=4c
-        elif test $7 -eq "1" ; then
-            REX=49
-        fi
-    fi
-    write_u16 8b $REX
-    write_bits_8 "10${1}${2}"
-    write_u32 $3 $4 $5 $6
-}
-
-movzx_u32_ea_u64_base_u64 () {
-    write_u16 b6 $REX
-    write_bits_8 "00${1}${2}"
-    # TODO: figure this one out lol
-}
-
-movzx_eax_ea_r12_base_rbx () {
-    write_u16 0f 41
-    write_u8 b6
-    write_bits_8 00000100
-    write_bits_8 00011100
-}
-movzx_esi_ea_r12_base_rbx () {
-    write_u16 0f 41
-    write_u8 b6
-    write_bits_8 00110100
-    write_bits_8 00011100
-}
-movzx_edi_ea_rcx_base_rax () {
-    write_u16 0f 48
-    write_u8 b6
-    write_bits_8 00111100
-    write_bits_8 00000001
-}
-movzx_edi_ea_r12_base_r14 () {
-    write_u16 0f 43
-    write_u8 b6
-    write_bits_8 00111100
-    write_bits_8 00110100
+call_imm32 () {
+    write_u8 e8
+    write_u32 $1 $2 $3 $4
 }
 
 cmovq_u32_u32 () {
@@ -323,9 +122,8 @@ cmovq_u32_u32 () {
         fi
         write_u8 $REX
     fi
-    write_u8 0f
-    write_u8 44
-    write_bits_8 "11${1}${2}"
+    write_u16 44 0f
+    write_b8 "11${1}${2}"
 }
 
 cmp_u32_imm8 () {
@@ -333,7 +131,7 @@ cmp_u32_imm8 () {
         write_u8 41
     fi
     write_u8 83
-    write_bits_8 "11111${1}"
+    write_b8 "11111${1}"
     write_u8 $2
 }
 cmp_u32_u32 () {
@@ -347,16 +145,15 @@ cmp_u32_u32 () {
         write_u8 $REX
     fi
     write_u8 3b
-    write_bits_8 "11${1}${2}"
+    write_b8 "11${1}${2}"
 }
-
 cmp_u64_imm8 () {
     REX=48
     if test ! -z $3 ; then
         REX=49
     fi
     write_u8 $REX
-    write_bits_8 "11111${1}"
+    write_b8 "11111${1}"
     write_u8 $2
 }
 cmp_u64_u64 () {
@@ -369,12 +166,63 @@ cmp_u64_u64 () {
             REX=49
         fi
     fi
-    write_u8 $REX
-    write_u8 3b
-    write_bits_8 "11${1}${2}"
+    write_u16 3b $REX
+    write_b8 "11${1}${2}"
 }
 
-lea_u64_u64 () {
+inc_u32 () {
+    if test ! -z $2 ; then
+        write_u8 41
+    fi
+    write_u8 ff
+    write_b8 "11000${1}"
+}
+inc_u64 () {
+    REX=48
+    if test ! -z $2 ; then
+        REX=49
+    fi
+    write_u16 ff $REX
+    write_b8 "11000${1}"
+}
+
+jmp_imm8 ()     { 
+    write_u16 $1 eb
+}
+jmp_imm32 ()    {
+    write_u8 e9
+    write_u32 $1 $2 $3 $4
+}
+jcc_g_imm8 ()   { 
+    write_u16 $1 7f
+}
+jcc_gq_imm8 ()  { 
+    write_u16 $1 73
+}
+jcc_l_imm8 ()   { 
+    write_u16 $1 72
+}
+jcc_lq_imm8 ()  { 
+    write_u16 $1 76 
+}
+jcc_q_imm8 ()   { 
+    write_u16 $1 74
+}
+jcc_q_imm32 ()  {
+    write_u16 84 0f
+    write_u32 $1 $2 $3 $4
+}
+jcc_nq_imm8 ()  { 
+    write_u16 $1 75
+}
+jcc_s_imm8 ()   { 
+    write_u16 $1 78
+}
+jcc_ns_imm8 ()  { 
+    write_u16 $1 79
+}
+
+lea_u64_ea_u64 () {
     REX=48
     if test ! -z $3 ; then
         REX=4d
@@ -385,22 +233,9 @@ lea_u64_u64 () {
         fi
     fi
     write_u16 8d $REX
-    write_bits_8 "00${1}${2}"
+    write_b8 "00${1}${2}"
 }
-lea_u64_u64_disp8 () {
-    REX=48
-    if test ! -z $3 ; then
-        REX=4d
-        if test $3 -eq "0" ; then
-            REX=4c
-        elif test $3 -eq "1" ; then
-            REX=49
-        fi
-    fi
-    write_u16 8d $REX
-    write_bits_8 "01${1}${2}"
-}
-lea_u64_u64_base_u64 () {
+lea_u64_ea_u64_disp8 () {
     REX=48
     if test ! -z $4 ; then
         REX=4d
@@ -411,85 +246,221 @@ lea_u64_u64_base_u64 () {
         fi
     fi
     write_u16 8d $REX
-    write_bits_8 "00${1}${2}"
-    write_u8 00
-    # TODO: last code not sure
+    write_b8 "01${1}${2}"
+    write_u8 $3
+}
+lea_u64_ea_u64_base_u64 () {
+    REX=48
+    if test ! -z $4 ; then
+        if test $4 -eq "0" ; then
+            REX=4c
+        elif test $4 -eq "1" ; then
+            REX=49
+        elif test $4 -eq "2" ; then
+            REX=4a
+        elif test $4 -eq "01" ; then
+            REX=4d
+        elif test $4 -eq "02" ; then
+            REX=4e
+        elif test $4 -eq "12" ; then
+            REX=4b
+        fi
+    fi
+    write_u16 8d $REX
+    write_b8 "00${1}${sp}"
+    write_b8 "00${3}${2}"
 }
 
-jcc_s_imm8 () {
-    write_u8 78
-    write_u8 $1
-}
-jcc_ns_imm8 () {
-    write_u8 79
-    write_u8 $1
-}
-jcc_g_imm8 () {
-    write_u8 7f
-    write_u8 $1
-}
-jcc_gq_imm8 () {
-    write_u8 73
-    write_u8 $1
-}
-jcc_q_imm8 () {
-    write_u8 74
-    write_u8 $1
-}
-jcc_q_imm32 () {
-    write_u8 0f
-    write_u8 84
-    write_u32 $1 $2 $3 $4
-}
-jcc_nq_imm8 () {
-    write_u8 75
-    write_u8 $1
-}
-jcc_l_imm8 () {
-    write_u8 72
-    write_u8 $1
-}
-jcc_lq_imm8 () {
-    write_u8 76
-    write_u8 $1
-}
-jmp_imm8 () {
-    write_u8 eb
-    write_u8 $1
-}
-jmp_imm32 () {
-    write_u8 e9
-    write_u32 $1 $2 $3 $4
-}
-
-inc_u32 () {
-    if test ! -z $2 ; then
+mov_u32_imm32 () {
+    if test ! -z $6 ; then
         write_u8 41
     fi
-    write_u8 ff
-    write_bits_8 "11000${1}"
+    write_u8 c7
+    write_b8 "11000${1}"
+    write_u32 $2 $3 $4 $5
 }
-inc_u64 () {
+mov_u32_u32 () {
+    if test ! -z $3 ; then
+        REX=45
+        if test $3 -eq "0" ; then
+            REX=44
+        elif test $3 -eq "1" ; then
+            REX=41
+        fi
+        write_u8 $REX
+    fi
+    write_u8 8b
+    write_b8 "11${1}${2}"
+}
+mov_u64_imm64 () {
+    reg="${1}"
+    shift
+
+    REX=48
+    if test ! -z $9 ; then
+        REX=49
+    fi
+    write_u8 $REX
+    write_b8 "10111${reg}" # +rd
+    write_u64 $1 $2 $3 $4 $5 $6 $7 $8
+}
+mov_u64_u64 () {
+    REX=48
+    if test ! -z $3 ; then
+        REX=4d
+        if test $3 -eq "0" ; then
+            REX=4c
+        elif test $3 -eq "1" ; then
+            REX=49
+        fi
+    fi
+    write_u16 8b $REX
+    write_b8 "11${1}${2}"
+}
+mov_u64_ea_u64 () {
+    REX=48
+    if test ! -z $3 ; then
+        REX=4d
+        if test $3 -eq "0" ; then
+            REX=4c
+        elif test $3 -eq "1" ; then
+            REX=49
+        fi
+    fi
+    write_u16 8b $REX
+    write_b8 "00${1}${2}"
+    write_b8 "00${sp}${2}"
+}
+mov_u64_ea_u64_disp8() {
+    REX=48
+    if test ! -z $4 ; then
+        REX=4d
+        if test $4 -eq "0" ; then
+            REX=4c
+        elif test $4 -eq "1" ; then
+            REX=49
+        fi
+    fi
+    write_u16 8b $REX
+    write_b8 "01${1}${2}"
+    write_b8 "00${sp}${2}"
+    write_u8 $3
+}
+mov_u64_ea_u64_disp32 () {
+    REX=48
+    if test ! -z $7 ; then
+        REX=4d
+        if test $7 -eq "0" ; then
+            REX=4c
+        elif test $7 -eq "1" ; then
+            REX=49
+        fi
+    fi
+    write_u16 8b $REX
+    write_b8 "10${1}${2}"
+    write_u32 $3 $4 $5 $6
+}
+
+movzx_u32_ea_byte_ptr_u64_base_u64 () {
+    if test ! -z $4 ; then
+        REX=47
+        if test $4 -eq "0" ; then
+            REX=44
+        elif test $4 -eq "1" ; then
+            REX=41
+        elif test $4 -eq "2" ; then
+            REX=42
+        elif test $4 -eq "01" ; then
+            REX=45
+        elif test $4 -eq "02" ; then
+            REX=46
+        elif test $4 -eq "12" ; then
+            REX=43
+        fi
+        write_u8 $REX
+    fi
+    write_u16 b6 0f
+    write_b8 "00${1}${2}"
+    write_b8 "00${3}${2}"
+}
+
+neg_u64 () {
     REX=48
     if test ! -z $2 ; then
         REX=49
     fi
-    write_u8 $REX
-    write_u8 ff
-    write_bits_8 "11000${1}"
+    write_u8 f7 $REX
+    write_b8 "11011${1}"
 }
 
-ret () {
+pop_u64 () {
+    REX=48
+    if test ! -z $2 ; then 
+        REX=49
+    fi
+    write_u16 8f $REX
+    write_b8 "11000${1}"
+}
+
+push_u64 () {
+    REX=48
+    if test ! -z $2 ; then 
+        REX=49
+    fi
+    write_u16 ff $REX
+    write_b8 "11110${1}"
+}
+
+ret () { 
     write_u8 c3
 }
 
-call_imm32 () {
-    write_u8 e8
-    write_u32 $1 $2 $3 $4
+shl_u64_imm8 () {
+    REX=48
+    if test ! -z $3 ; then
+        REX=49
+    fi
+    write_u16 c1 $REX
+    write_b8 "11100${1}"
+    write_u8 $2
+}
+shl_u64_once () {
+    REX=48
+    if test ! -z $2 ; then
+        REX=49
+    fi
+    write_u16 d1 $REX
+    write_b8 "11100${1}"
 }
 
-syscall () {
+shr_u64_imm8 () {
+    REX=48
+    if test ! -z $3 ; then
+        REX=49
+    fi
+    write_u16 c1 $REX
+    write_b8 "11101${1}"
+    write_u8 $2
+}
+shr_u64_once () {
+    REX=48
+    if test ! -z $2 ; then
+        REX=49
+    fi
+    write_u16 d1 $REX
+    write_b8 "11111${1}"
+}
+
+syscall () { 
     write_u16 05 0f
+}
+
+xor_self_u32 () {
+    if test ! -z $2 ; then
+        write_u8 45
+    fi
+    write_u8 33
+    write_b8 "11${1}${1}"
 }
 
 write_ph () {
@@ -667,16 +638,16 @@ inc_u64 $r14 0
 #   ch = arr[pos];
 # }
 
-lea_rsi_r15_disp8 01
+lea_u64_ea_u64_disp8 $si $r15 01 1
 xor_self_u32 $ax
-movzx_edi_ea_r12_base_r14
+movzx_u32_ea_byte_ptr_u64_base_u64 $di $r12 $r14 "12"
 cmp_u32_imm8 $di 0a
-cmovq_eax_esi
-cmovq_r15d_esi
+cmovq_u32_u32 $ax $si
+cmovq_u32_u32 $r15 $si 0
 cmp_u32_imm8 $di 20
-cmovq_eax_esi
+cmovq_u32_u32 $ax $si
 cmp_u32_imm8 $di 09
-cmovq_eax_esi
+cmovq_u32_u32 $ax $si
 cmp_u32_u32 $ax $si
 jcc_q_imm32 ff ff ff d4 # >next_token_skip_whitespace_newline_and_tabs_beg
 
@@ -688,7 +659,7 @@ jcc_nq_imm8 19          # >next_token_check_number
 
 # .next_token_iterate_ident
 inc_u64 $r14 0
-movzx_edi_ea_r12_base_r14
+movzx_u32_ea_byte_ptr_u64_base_u64 $di $r12 $r14 "12"
 call_imm32 ff ff ff 7d  # >is_ident
 cmp_u32_imm8 $ax 01
 jcc_q_imm8 ee           # >next_token_iterate_ident
@@ -705,7 +676,7 @@ jcc_nq_imm8 1d          # >next_token_check_single_chars
 
 # .next_token_iterate_number
 inc_u64 $r14 0
-movzx_edi_ea_r12_base_r14
+movzx_u32_ea_byte_ptr_u64_base_u64 $di $r12 $r14 "12"
 call_imm32 ff ff ff 73  # >is_number
 cmp_u32_imm8 $ax 01
 jcc_q_imm8 ee           # >next_token_iterate_number
@@ -847,7 +818,7 @@ ret
 # args:
 #   rsp | holds argc, argv and environ probably
 
-mov_rdi_ea_rsp_disp8 00
+mov_u64_ea_u64 $di $sp              # argc
 cmp_u32_imm8 $di 02
 jcc_q_imm8 0e
 # TODO: error no file provided
@@ -857,7 +828,8 @@ syscall
 
 # get file descriptor
 mov_u32_imm32 $ax 00 00 00 02
-mov_rdi_ea_rsp_disp8 10 # argv[1]
+
+mov_u64_ea_u64_disp8 $di $sp 10     # argv[1]
 mov_u64_imm64 $si 00 00 00 00 00 00 00 02
 mov_u64_imm64 $dx 00 00 00 00 00 00 01 a4
 syscall
@@ -888,7 +860,7 @@ syscall
 
 # allocate file size aligned to page size
 mov_u32_u32 $si $r13 1
-call_imm32 ff ff fd 70  # >allocate
+call_imm32 ff ff fd 71  # >allocate
 mov_u64_u64 $r12 $ax 0  # r12 file_ptr
 
 # read file
@@ -940,7 +912,7 @@ syscall
 #
 # struct Token [u64] {
 #   TokenKind kind;     | rax
-#   u32 beg;            | rsi
+#   u32 file_offset;    | rsi
 # };
 
 # ============== ELF_HEADER ============================
@@ -990,13 +962,16 @@ xor_self_u32 $r15 1             # current line   in the file
 #   }
 # } while token.kind != EOF
 
-call_imm32 ff ff fd be      # >next_token
+call_imm32 ff ff fd bf      # >next_token
 
 mov_u64_u64 $di $ax
 mov_u32_imm32 $ax 00 00 00 3c
 syscall
 
 # .shell_script_write_final_output
+
+lea_u64_ea_u64_base_u64 $ax $di $cx
+lea_u64_ea_u64_base_u64 $ax $r8 $r15 "12"
 
 }
 
